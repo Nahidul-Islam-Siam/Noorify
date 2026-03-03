@@ -405,7 +405,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
               child: Row(
                 children: [
                   const CircleAvatar(
-                    radius: 18,
+                    radius: 28,
                     child: Icon(Icons.person, size: 18),
                   ),
                   const SizedBox(width: 8),
@@ -565,6 +565,7 @@ class DailyActivityScreen extends StatefulWidget {
 class _DailyActivityScreenState extends State<DailyActivityScreen> {
   static const _dhakaLat = 23.8103;
   static const _dhakaLng = 90.4125;
+  static const _headerHeight = 330.0;
 
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -829,14 +830,34 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     return '${nextPrayer.key} in $hh:$mm:$ss';
   }
 
+  List<_PrayerDisplayData> _centeredPrayerTiles() {
+    const prayerOrder = ['Fajr', 'Dzuhr', 'Ashr', 'Maghrib', 'Isha'];
+    final activeIndex = prayerOrder.indexOf(_activePrayer);
+    final centerIndex = activeIndex == -1 ? 0 : activeIndex;
+
+    return List.generate(prayerOrder.length, (i) {
+      final offset = i - 2;
+      final index = (centerIndex + offset + prayerOrder.length) % prayerOrder.length;
+      final name = prayerOrder[index];
+      return _PrayerDisplayData(
+        name: name,
+        time: _prayerTimes[name] ?? '--:--',
+        isActive: name == _activePrayer,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final centeredPrayerTiles = _centeredPrayerTiles();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
             Container(
+              height: _headerHeight,
               decoration: const BoxDecoration(
                 color: Color(0xFF1D98A9),
                 borderRadius: BorderRadius.vertical(
@@ -852,10 +873,9 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                       ),
                       child: Container(
                         decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xFF1FB7C7), Color(0xFF1D98A9)],
+                          image: DecorationImage(
+                            image: AssetImage('assets/images/header-bg.png'),
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
@@ -877,12 +897,12 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                               ),
                             ),
                             Spacer(),
-                            Text(
-                              _countdownLabel,
+                            const Text(
+                              '10 Ramadhan 1446 H',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
@@ -890,12 +910,12 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Text(
-                              '10 Ramadhan 1446 H',
-                              style: TextStyle(
+                            Text(
+                              _countdownLabel,
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                             const Spacer(),
@@ -938,43 +958,24 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const Spacer(),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: Row(
                             children: [
-                              _PrayerTile(
-                                title: 'Fajr',
-                                time: _prayerTimes['Fajr'] ?? '--:--',
-                                active: _activePrayer == 'Fajr',
-                              ),
-                              const SizedBox(width: 8),
-                              _PrayerTile(
-                                title: 'Dzuhr',
-                                time: _prayerTimes['Dzuhr'] ?? '--:--',
-                                active: _activePrayer == 'Dzuhr',
-                              ),
-                              const SizedBox(width: 8),
-                              _PrayerTile(
-                                title: 'Ashr',
-                                time: _prayerTimes['Ashr'] ?? '--:--',
-                                active: _activePrayer == 'Ashr',
-                              ),
-                              const SizedBox(width: 8),
-                              _PrayerTile(
-                                title: 'Maghrib',
-                                time: _prayerTimes['Maghrib'] ?? '--:--',
-                                active: _activePrayer == 'Maghrib',
-                              ),
-                              const SizedBox(width: 8),
-                              _PrayerTile(
-                                title: 'Isha',
-                                time: _prayerTimes['Isha'] ?? '--:--',
-                                active: _activePrayer == 'Isha',
-                              ),
+                              for (int i = 0; i < centeredPrayerTiles.length; i++) ...[
+                                _PrayerTile(
+                                  title: centeredPrayerTiles[i].name,
+                                  time: centeredPrayerTiles[i].time,
+                                  active: centeredPrayerTiles[i].isActive,
+                                ),
+                                if (i != centeredPrayerTiles.length - 1)
+                                  const SizedBox(width: 8),
+                              ],
                             ],
                           ),
                         ),
+                        const SizedBox(height: 18),
                       ],
                     ),
                   ),
@@ -1270,6 +1271,18 @@ class _ActivityItem {
   final int total;
 }
 
+class _PrayerDisplayData {
+  const _PrayerDisplayData({
+    required this.name,
+    required this.time,
+    required this.isActive,
+  });
+
+  final String name;
+  final String time;
+  final bool isActive;
+}
+
 class _PrayerTile extends StatelessWidget {
   const _PrayerTile({
     required this.title,
@@ -1283,31 +1296,41 @@ class _PrayerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 72,
-      padding: const EdgeInsets.symmetric(vertical: 12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      width: active ? 80 : 68,
+      padding: EdgeInsets.symmetric(vertical: active ? 14 : 10),
       decoration: BoxDecoration(
-        color: active ? const Color(0x33FFFFFF) : const Color(0x22FFFFFF),
+        color: active ? const Color(0x44FFFFFF) : const Color(0x22FFFFFF),
         borderRadius: BorderRadius.circular(18),
+        border: active ? Border.all(color: const Color(0x66FFFFFF)) : null,
       ),
       child: Column(
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: active ? 14 : 13,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 4),
           Icon(
             active ? Icons.wb_sunny_rounded : Icons.cloud_rounded,
-            size: 16,
+            size: active ? 18 : 16,
             color: Colors.white,
           ),
           const SizedBox(height: 4),
-          Text(time, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          Text(
+            time,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: active ? 13 : 12,
+              fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+            ),
+          ),
         ],
       ),
     );
