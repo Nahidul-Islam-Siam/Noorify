@@ -38,6 +38,8 @@ dependencies:
   geolocator: ^14.0.2
   geocoding: ^4.0.0
   adhan_dart: ^1.2.0
+  flutter_local_notifications: ^19.4.2
+  timezone: ^0.10.1
 
 dev_dependencies:
   flutter_test:

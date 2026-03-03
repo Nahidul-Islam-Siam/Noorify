@@ -4,11 +4,50 @@ import 'package:adhan_dart/adhan_dart.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
-void main() {
+final FlutterLocalNotificationsPlugin localNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+const int maghribNotificationId = 1001;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await _initializeNotifications();
   runApp(const MyApp());
 }
+
+Future<void> _initializeNotifications() async {
+  tz_data.initializeTimeZones();
+
+  const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosSettings = DarwinInitializationSettings();
+
+  await localNotificationsPlugin.initialize(
+    const InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    ),
+  );
+
+  await localNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
+      ?.requestNotificationsPermission();
+  await localNotificationsPlugin
+      .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+      ?.requestPermissions(alert: true, badge: true, sound: true);
+}
+
+enum AppLanguage { english, bangla }
+
+final ValueNotifier<AppLanguage> appLanguageNotifier =
+    ValueNotifier<AppLanguage>(AppLanguage.english);
+final ValueNotifier<bool> maghribAlertEnabledNotifier =
+    ValueNotifier<bool>(true);
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -430,6 +469,83 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE1E8EC)),
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Language',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    ValueListenableBuilder<AppLanguage>(
+                      valueListenable: appLanguageNotifier,
+                      builder: (context, language, _) {
+                        return ToggleButtons(
+                          borderRadius: BorderRadius.circular(8),
+                          isSelected: [
+                            language == AppLanguage.english,
+                            language == AppLanguage.bangla,
+                          ],
+                          onPressed: (index) {
+                            appLanguageNotifier.value = index == 0
+                                ? AppLanguage.english
+                                : AppLanguage.bangla;
+                          },
+                          children: const [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: Text('English'),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: Text('Bangla'),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE1E8EC)),
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Maghrib Alert',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: maghribAlertEnabledNotifier,
+                      builder: (context, enabled, _) {
+                        return Switch(
+                          value: enabled,
+                          onChanged: (v) => maghribAlertEnabledNotifier.value = v,
+                          activeThumbColor: const Color(0xFF14A3B8),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -572,11 +688,14 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   double? _latitude;
   double? _longitude;
   DateTime? _lastPrayerCalcDate;
+  DateTime? _todayMaghrib;
+  bool _maghribModalShownToday = false;
   String _locationLabel = 'Detecting location...';
   String _countdownLabel = 'Calculating prayer...';
   String _activePrayer = 'Dzuhr';
+  Duration _activeRemaining = Duration.zero;
+  double _activeProgress = 0.0;
   Map<String, String> _prayerTimes = const {
-
     'Fajr': '--:--',
     'Dzuhr': '--:--',
     'Ashr': '--:--',
@@ -586,6 +705,15 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
   int _completedDaily = 3;
   final int _dailyGoal = 6;
+  final List<String> _prayerOrder = const [
+    'Fajr',
+    'Dzuhr',
+    'Ashr',
+    'Maghrib',
+    'Isha',
+  ];
+  late final PageController _prayerPageController;
+  String? _selectedPrayer;
 
   final List<_ActivityItem> _activities = [
     _ActivityItem(title: 'Alms', done: 4, total: 10),
@@ -595,11 +723,18 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   @override
   void initState() {
     super.initState();
+    _prayerPageController = PageController(
+      viewportFraction: 0.23,
+      initialPage: _prayerOrder.indexOf(_activePrayer),
+    );
+    appLanguageNotifier.addListener(_onLanguageChanged);
+    maghribAlertEnabledNotifier.addListener(_onMaghribAlertToggleChanged);
     _loadPrayerData();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _now = DateTime.now());
       _updateCountdown();
+      _maybeShowMaghribModal();
       if (_lastPrayerCalcDate == null ||
           _lastPrayerCalcDate!.day != _now.day ||
           _lastPrayerCalcDate!.month != _now.month ||
@@ -611,14 +746,189 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
   @override
   void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
+    maghribAlertEnabledNotifier.removeListener(_onMaghribAlertToggleChanged);
     _clockTimer.cancel();
+    _prayerPageController.dispose();
     super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _onMaghribAlertToggleChanged() async {
+    if (maghribAlertEnabledNotifier.value) {
+      if (_todayMaghrib != null) {
+        await _scheduleMaghribNotification(_todayMaghrib!);
+      }
+    } else {
+      await _cancelMaghribNotification();
+    }
+    if (mounted) setState(() {});
   }
 
   String get _formattedTime {
     final hour12 = (_now.hour % 12 == 0) ? 12 : _now.hour % 12;
     final minute = _now.minute.toString().padLeft(2, '0');
-    return '$hour12:$minute';
+    final value = '$hour12:$minute';
+    return _isBangla ? _toBanglaDigits(value) : value;
+  }
+
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+
+  String _toBanglaDigits(String input) {
+    const latin = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const bangla = [
+      '\u09e6',
+      '\u09e7',
+      '\u09e8',
+      '\u09e9',
+      '\u09ea',
+      '\u09eb',
+      '\u09ec',
+      '\u09ed',
+      '\u09ee',
+      '\u09ef',
+    ];
+    var output = input;
+    for (var i = 0; i < latin.length; i++) {
+      output = output.replaceAll(latin[i], bangla[i]);
+    }
+    return output;
+  }
+
+  String _localizedPrayerName(String name) {
+    if (!_isBangla) return name;
+    const map = {
+      'Fajr': '\u09ab\u099c\u09b0',
+      'Dzuhr': '\u09af\u09cb\u09b9\u09b0',
+      'Ashr': '\u0986\u09b8\u09b0',
+      'Maghrib': '\u09ae\u09be\u0997\u09b0\u09bf\u09ac',
+      'Isha': '\u0987\u09b6\u09be',
+    };
+    return map[name] ?? name;
+  }
+
+  String _localizedCountdownLabel() {
+    if (!_isBangla) return _countdownLabel;
+    final parts = _countdownLabel.split(' in ');
+    if (parts.length == 2) {
+      return '${_localizedPrayerName(parts[0])} \u09ac\u09be\u0995\u09bf ${_toBanglaDigits(parts[1])}';
+    }
+    return _toBanglaDigits(_countdownLabel);
+  }
+
+  String _localizedActiveRemainingLabel() =>
+      _isBangla ? '\u09b6\u09c7\u09b7 \u09b9\u0993\u09df\u09be\u09b0 \u09ac\u09be\u0995\u09bf' : 'Time Left';
+
+  String _localizedPrayerTimeLabel() =>
+      _isBangla ? '\u09aa\u09cd\u09b0\u09be\u09b0\u09cd\u09a5\u09a8\u09be\u09b0 \u09b8\u09ae\u09df' : 'Prayer Time';
+
+  String _localizedMaghribTitle() =>
+      _isBangla ? '\u09ae\u09be\u0997\u09b0\u09bf\u09ac \u098f\u09b2\u09be\u09b0\u09cd\u099f' : 'Maghrib Alert';
+
+  String _localizedMaghribBody() => _isBangla
+      ? '\u09ae\u09be\u0997\u09b0\u09bf\u09ac\u09c7\u09b0 \u09b8\u09ae\u09df \u09b9\u09df\u09c7\u099b\u09c7\u0964'
+      : 'It is time for Maghrib prayer.';
+
+  String _localizedStopAlerts() =>
+      _isBangla ? '\u098f\u09b2\u09be\u09b0\u09cd\u099f \u09ac\u09a8\u09cd\u09a7' : 'Stop Alerts';
+
+  String _localizedClose() => _isBangla ? '\u09ac\u09a8\u09cd\u09a7' : 'Close';
+
+  String _localizedPrayerTime(String value) =>
+      _isBangla ? _toBanglaDigits(value) : value;
+
+  Future<void> _scheduleMaghribNotification(DateTime maghribTime) async {
+    if (!maghribAlertEnabledNotifier.value) return;
+
+    var scheduled = tz.TZDateTime.from(maghribTime, tz.local);
+    final nowTz = tz.TZDateTime.now(tz.local);
+    if (scheduled.isBefore(nowTz)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'maghrib_alert_channel',
+        'Maghrib Alerts',
+        channelDescription: 'Alert when Maghrib time starts',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+
+    await localNotificationsPlugin.zonedSchedule(
+      maghribNotificationId,
+      _localizedMaghribTitle(),
+      _localizedMaghribBody(),
+      scheduled,
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: 'maghrib',
+    );
+  }
+
+  Future<void> _cancelMaghribNotification() async {
+    await localNotificationsPlugin.cancel(maghribNotificationId);
+  }
+
+  void _maybeShowMaghribModal() {
+    if (!maghribAlertEnabledNotifier.value) return;
+    if (_todayMaghrib == null || _maghribModalShownToday) return;
+    if (!mounted) return;
+
+    final now = DateTime.now();
+    final start = _todayMaghrib!;
+    final end = start.add(const Duration(minutes: 1));
+    if (now.isBefore(start) || now.isAfter(end)) return;
+
+    _maghribModalShownToday = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(_localizedMaghribTitle()),
+          content: Text(_localizedMaghribBody()),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                maghribAlertEnabledNotifier.value = false;
+                await _cancelMaghribNotification();
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              child: Text(_localizedStopAlerts()),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(_localizedClose()),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String get _displayPrayer => _selectedPrayer ?? _activePrayer;
+  bool get _isShowingActivePrayer => _displayPrayer == _activePrayer;
+
+  void _syncPrayerPageToActive({required bool animate}) {
+    if (!_prayerPageController.hasClients) return;
+    final target = _prayerOrder.indexOf(_activePrayer);
+    if (target == -1) return;
+    if (animate) {
+      _prayerPageController.animateToPage(
+        target,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOut,
+      );
+    } else {
+      _prayerPageController.jumpToPage(target);
+    }
   }
 
   Future<void> _loadPrayerData() async {
@@ -685,6 +995,11 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
   void _recalculatePrayerTimesForToday() {
     if (_latitude == null || _longitude == null) return;
+    final isNewDay =
+        _lastPrayerCalcDate == null ||
+        _lastPrayerCalcDate!.day != _now.day ||
+        _lastPrayerCalcDate!.month != _now.month ||
+        _lastPrayerCalcDate!.year != _now.year;
 
     final params = CalculationMethodParameters.karachi();
     params.madhab = Madhab.hanafi;
@@ -699,9 +1014,21 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     final ashr = prayers.asr.toLocal();
     final maghrib = prayers.maghrib.toLocal();
     final isha = prayers.isha.toLocal();
+    final ishaBefore = prayers.ishaBefore.toLocal();
+    final activeData = _buildActivePrayerData(
+      now: _now,
+      fajr: fajr,
+      dzuhr: dzuhr,
+      ashr: ashr,
+      maghrib: maghrib,
+      isha: isha,
+      ishaBefore: ishaBefore,
+    );
 
     setState(() {
       _lastPrayerCalcDate = DateTime.now();
+      _todayMaghrib = maghrib;
+      if (isNewDay) _maghribModalShownToday = false;
       _prayerTimes = {
         'Fajr': _formatPrayerTime(fajr),
         'Dzuhr': _formatPrayerTime(dzuhr),
@@ -709,23 +1036,21 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
         'Maghrib': _formatPrayerTime(maghrib),
         'Isha': _formatPrayerTime(isha),
       };
-      _activePrayer = _nextPrayerName(
-        now: _now,
-        fajr: fajr,
-        dzuhr: dzuhr,
-        ashr: ashr,
-        maghrib: maghrib,
-        isha: isha,
-      );
-      _countdownLabel = _countdownToNextPrayer(
-        now: _now,
-        fajr: fajr,
-        dzuhr: dzuhr,
-        ashr: ashr,
-        maghrib: maghrib,
-        isha: isha,
-      );
+      _activePrayer = activeData.name;
+      _countdownLabel = activeData.countdownLabel;
+      _activeRemaining = activeData.remaining;
+      _activeProgress = activeData.progress;
     });
+    if (maghribAlertEnabledNotifier.value) {
+      _scheduleMaghribNotification(maghrib);
+    } else {
+      _cancelMaghribNotification();
+    }
+    if (_selectedPrayer == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _syncPrayerPageToActive(animate: false);
+      });
+    }
   }
 
   void _updateCountdown() {
@@ -744,30 +1069,33 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     final ashr = prayers.asr.toLocal();
     final maghrib = prayers.maghrib.toLocal();
     final isha = prayers.isha.toLocal();
-
-    final nextName = _nextPrayerName(
+    final ishaBefore = prayers.ishaBefore.toLocal();
+    final activeData = _buildActivePrayerData(
       now: _now,
       fajr: fajr,
       dzuhr: dzuhr,
       ashr: ashr,
       maghrib: maghrib,
       isha: isha,
-    );
-    final nextCountdown = _countdownToNextPrayer(
-      now: _now,
-      fajr: fajr,
-      dzuhr: dzuhr,
-      ashr: ashr,
-      maghrib: maghrib,
-      isha: isha,
+      ishaBefore: ishaBefore,
     );
 
     if (mounted &&
-        (nextName != _activePrayer || nextCountdown != _countdownLabel)) {
+        (activeData.name != _activePrayer ||
+            activeData.countdownLabel != _countdownLabel ||
+            activeData.progress != _activeProgress ||
+            activeData.remaining != _activeRemaining)) {
       setState(() {
-        _activePrayer = nextName;
-        _countdownLabel = nextCountdown;
+        _activePrayer = activeData.name;
+        _countdownLabel = activeData.countdownLabel;
+        _activeRemaining = activeData.remaining;
+        _activeProgress = activeData.progress;
       });
+      if (_selectedPrayer == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _syncPrayerPageToActive(animate: true);
+        });
+      }
     }
   }
 
@@ -777,36 +1105,16 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     return '$h:$m';
   }
 
-  String _nextPrayerName({
+  _ActivePrayerData _buildActivePrayerData({
     required DateTime now,
     required DateTime fajr,
     required DateTime dzuhr,
     required DateTime ashr,
     required DateTime maghrib,
     required DateTime isha,
+    required DateTime ishaBefore,
   }) {
-    final ordered = <MapEntry<String, DateTime>>[
-      MapEntry('Fajr', fajr),
-      MapEntry('Dzuhr', dzuhr),
-      MapEntry('Ashr', ashr),
-      MapEntry('Maghrib', maghrib),
-      MapEntry('Isha', isha),
-    ];
-    for (final prayer in ordered) {
-      if (prayer.value.isAfter(now)) return prayer.key;
-    }
-    return 'Fajr';
-  }
-
-  String _countdownToNextPrayer({
-    required DateTime now,
-    required DateTime fajr,
-    required DateTime dzuhr,
-    required DateTime ashr,
-    required DateTime maghrib,
-    required DateTime isha,
-  }) {
-    final ordered = <MapEntry<String, DateTime>>[
+    final schedule = <MapEntry<String, DateTime>>[
       MapEntry('Fajr', fajr),
       MapEntry('Dzuhr', dzuhr),
       MapEntry('Ashr', ashr),
@@ -814,42 +1122,62 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       MapEntry('Isha', isha),
     ];
 
-    MapEntry<String, DateTime>? nextPrayer;
-    for (final prayer in ordered) {
-      if (prayer.value.isAfter(now)) {
-        nextPrayer = prayer;
+    MapEntry<String, DateTime>? activePrayer;
+    int activeIndex = -1;
+    for (int i = 0; i < schedule.length; i++) {
+      if (schedule[i].value.isAfter(now)) {
+        activePrayer = schedule[i];
+        activeIndex = i;
         break;
       }
     }
-    nextPrayer ??= MapEntry('Fajr', fajr.add(const Duration(days: 1)));
 
-    final diff = nextPrayer.value.difference(now);
-    final hh = diff.inHours.toString().padLeft(2, '0');
-    final mm = (diff.inMinutes % 60).toString().padLeft(2, '0');
-    final ss = (diff.inSeconds % 60).toString().padLeft(2, '0');
-    return '${nextPrayer.key} in $hh:$mm:$ss';
+    DateTime previousBoundary;
+    if (activePrayer == null) {
+      activePrayer = MapEntry('Fajr', fajr.add(const Duration(days: 1)));
+      previousBoundary = isha;
+    } else if (activeIndex == 0) {
+      previousBoundary = ishaBefore;
+    } else {
+      previousBoundary = schedule[activeIndex - 1].value;
+    }
+
+    final remaining = activePrayer.value.difference(now);
+    final totalWindow = activePrayer.value.difference(previousBoundary);
+    final elapsed = totalWindow - remaining;
+    final progress = totalWindow.inMilliseconds <= 0
+        ? 0.0
+        : (elapsed.inMilliseconds / totalWindow.inMilliseconds).clamp(0.0, 1.0);
+    final hh = remaining.inHours.toString().padLeft(2, '0');
+    final mm = (remaining.inMinutes % 60).toString().padLeft(2, '0');
+    final ss = (remaining.inSeconds % 60).toString().padLeft(2, '0');
+    return _ActivePrayerData(
+      name: activePrayer.key,
+      countdownLabel: '${activePrayer.key} in $hh:$mm:$ss',
+      remaining: remaining.isNegative ? Duration.zero : remaining,
+      progress: progress,
+    );
   }
 
-  List<_PrayerDisplayData> _centeredPrayerTiles() {
-    const prayerOrder = ['Fajr', 'Dzuhr', 'Ashr', 'Maghrib', 'Isha'];
-    final activeIndex = prayerOrder.indexOf(_activePrayer);
-    final centerIndex = activeIndex == -1 ? 0 : activeIndex;
-
-    return List.generate(prayerOrder.length, (i) {
-      final offset = i - 2;
-      final index = (centerIndex + offset + prayerOrder.length) % prayerOrder.length;
-      final name = prayerOrder[index];
-      return _PrayerDisplayData(
-        name: name,
-        time: _prayerTimes[name] ?? '--:--',
-        isActive: name == _activePrayer,
-      );
-    });
+  String _formattedActiveRemaining() {
+    final d = _activeRemaining.isNegative ? Duration.zero : _activeRemaining;
+    final hh = d.inHours.toString().padLeft(2, '0');
+    final mm = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final ss = (d.inSeconds % 60).toString().padLeft(2, '0');
+    final value = '$hh:$mm:$ss';
+    return _isBangla ? _toBanglaDigits(value) : value;
   }
 
   @override
   Widget build(BuildContext context) {
-    final centeredPrayerTiles = _centeredPrayerTiles();
+    final gaugePrayerName = _localizedPrayerName(_displayPrayer);
+    final gaugeSubtitle = _isShowingActivePrayer
+        ? _localizedActiveRemainingLabel()
+        : _localizedPrayerTimeLabel();
+    final gaugeValue = _isShowingActivePrayer
+        ? _formattedActiveRemaining()
+        : _localizedPrayerTime(_prayerTimes[_displayPrayer] ?? '--:--');
+    final gaugeProgress = _isShowingActivePrayer ? _activeProgress : 0.0;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -865,6 +1193,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                 ),
               ),
               child: Stack(
+                clipBehavior: Clip.none,
                 children: [
                   Positioned.fill(
                     child: ClipRRect(
@@ -911,7 +1240,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                         Row(
                           children: [
                             Text(
-                              _countdownLabel,
+                              _localizedCountdownLabel(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -958,30 +1287,69 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                             ),
                           ],
                         ),
-                        const Spacer(),
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              for (int i = 0; i < centeredPrayerTiles.length; i++) ...[
-                                _PrayerTile(
-                                  title: centeredPrayerTiles[i].name,
-                                  time: centeredPrayerTiles[i].time,
-                                  active: centeredPrayerTiles[i].isActive,
-                                ),
-                                if (i != centeredPrayerTiles.length - 1)
-                                  const SizedBox(width: 8),
-                              ],
-                            ],
-                          ),
+                        const SizedBox(height: 8),
+                        _ActivePrayerGauge(
+                          prayerName: gaugePrayerName,
+                          subtitle: gaugeSubtitle,
+                          remainingTime: gaugeValue,
+                          progress: gaugeProgress,
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 6),
+                        if (!_isShowingActivePrayer)
+                          Align(
+                            alignment: Alignment.center,
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              onPressed: () {
+                                setState(() => _selectedPrayer = null);
+                                _syncPrayerPageToActive(animate: true);
+                              },
+                              icon: const Icon(Icons.my_location, size: 16),
+                              label: Text(
+                                _isBangla
+                                    ? '\u09ac\u09b0\u09cd\u09a4\u09ae\u09be\u09a8 \u09aa\u09cd\u09b0\u09be\u09b0\u09cd\u09a5\u09a8\u09be'
+                                    : 'Back to current',
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 32),
                       ],
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: -12,
+                    child: SizedBox(
+                      height: 102,
+                      child: PageView.builder(
+                        controller: _prayerPageController,
+                        itemCount: _prayerOrder.length,
+                        onPageChanged: (index) {
+                          setState(() => _selectedPrayer = _prayerOrder[index]);
+                        },
+                        itemBuilder: (context, index) {
+                          final prayer = _prayerOrder[index];
+                          return Center(
+                            child: _PrayerTile(
+                              title: _localizedPrayerName(prayer),
+                              time: _localizedPrayerTime(
+                                _prayerTimes[prayer] ?? '--:--',
+                              ),
+                              active: prayer == _displayPrayer,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -1271,16 +1639,117 @@ class _ActivityItem {
   final int total;
 }
 
-class _PrayerDisplayData {
-  const _PrayerDisplayData({
+class _ActivePrayerData {
+  const _ActivePrayerData({
     required this.name,
-    required this.time,
-    required this.isActive,
+    required this.countdownLabel,
+    required this.remaining,
+    required this.progress,
   });
 
   final String name;
-  final String time;
-  final bool isActive;
+  final String countdownLabel;
+  final Duration remaining;
+  final double progress;
+}
+
+class _ActivePrayerGauge extends StatelessWidget {
+  const _ActivePrayerGauge({
+    required this.prayerName,
+    required this.subtitle,
+    required this.remainingTime,
+    required this.progress,
+  });
+
+  final String prayerName;
+  final String subtitle;
+  final String remainingTime;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 170,
+      height: 100,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(170, 100),
+            painter: _ActivePrayerGaugePainter(progress: progress),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 14),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  prayerName,
+                  style: const TextStyle(
+                    color: Color(0xFF18363A),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: Color(0xFF18363A),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  remainingTime,
+                  style: const TextStyle(
+                    color: Color(0xFF18363A),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivePrayerGaugePainter extends CustomPainter {
+  _ActivePrayerGaugePainter({required this.progress});
+
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const stroke = 8.0;
+    final radius = (size.width / 2) - stroke;
+    final center = Offset(size.width / 2, size.height * 0.95);
+    final rect = Rect.fromCircle(center: center, radius: radius);
+
+    final bgPaint = Paint()
+      ..color = const Color(0x33FFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+
+    final fgPaint = Paint()
+      ..color = const Color(0xFF14383E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(rect, 3.14159, 3.14159, false, bgPaint);
+    canvas.drawArc(rect, 3.14159, 3.14159 * progress.clamp(0.0, 1.0), false, fgPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ActivePrayerGaugePainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 class _PrayerTile extends StatelessWidget {
@@ -1437,3 +1906,4 @@ Widget _bottomNav(int active) {
     ),
   );
 }
+
