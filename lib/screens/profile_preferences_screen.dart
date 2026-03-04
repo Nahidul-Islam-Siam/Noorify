@@ -182,7 +182,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                 child: const Text('Logout'),
               ),
             ),
-            bottomNav(2),
+            bottomNav(context, 4),
           ],
         ),
       ),

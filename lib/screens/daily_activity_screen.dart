@@ -966,7 +966,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                 ],
               ),
             ),
-            bottomNav(0),
+            bottomNav(context, 0),
           ],
         ),
       ),

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'app/app_globals.dart';
-import 'screens/ui_preview_home.dart';
+import 'app/app_routes.dart';
+import 'app/route_names.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +23,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       ),
-      home: const UiPreviewHome(),
+      initialRoute: RouteNames.preview,
+      onGenerateRoute: AppRoutes.onGenerateRoute,
     );
   }
 }

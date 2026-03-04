@@ -1,22 +1,18 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
-import 'daily_activity_screen.dart';
-import 'edit_profile_screen.dart';
-import 'profile_preferences_screen.dart';
-import 'ramadan_splash_screen.dart';
-import 'signup_screen.dart';
+import '../app/route_names.dart';
 
 class UiPreviewHome extends StatelessWidget {
   const UiPreviewHome({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final items = <({String title, Widget page})>[
-      (title: 'Splash Screen', page: const RamadanSplashScreen()),
-      (title: 'Sign Up Screen', page: const SignupScreen()),
-      (title: 'Profile Preferences', page: const ProfilePreferencesScreen()),
-      (title: 'Edit Profile', page: const EditProfileScreen()),
-      (title: 'Daily Activity', page: const DailyActivityScreen()),
+    final items = <({String title, String routeName})>[
+      (title: 'Splash Screen', routeName: RouteNames.splash),
+      (title: 'Sign Up Screen', routeName: RouteNames.signUp),
+      (title: 'Profile Preferences', routeName: RouteNames.preferences),
+      (title: 'Edit Profile', routeName: RouteNames.editProfile),
+      (title: 'Daily Activity', routeName: RouteNames.activity),
     ];
 
     return Scaffold(
@@ -28,12 +24,7 @@ class UiPreviewHome extends StatelessWidget {
         itemBuilder: (context, index) {
           final item = items[index];
           return FilledButton.tonal(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => item.page),
-              );
-            },
+            onPressed: () => Navigator.of(context).pushNamed(item.routeName),
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
