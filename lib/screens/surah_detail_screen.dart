@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../app/brand_colors.dart';
 import '../models/quran_models.dart';
 import '../services/quran_api_service.dart';
 import '../services/quran_offline_download_service.dart';
@@ -32,6 +33,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   bool _isPreparingAudio = false;
   bool _isDownloadingAudio = false;
   bool _didDownloadAudio = false;
+  bool _usingCachedContent = false;
 
   int? _selectedReciterId;
   int? _preparedReciterId;
@@ -87,6 +89,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         widget.chapter.surahNo,
         lang: 'bn',
       );
+      final fromCache = _api.lastReadFromCache;
       final cachedIds = <int>{};
       for (final reciter in detail.audioByReciter) {
         final isCached = await _offline.hasAudio(reciter.url);
@@ -102,12 +105,21 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         _cachedReciterIds
           ..clear()
           ..addAll(cachedIds);
+        _usingCachedContent = fromCache;
         _isLoading = false;
       });
+      if (fromCache) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('অফলাইন সেভ করা সূরার কনটেন্ট দেখানো হচ্ছে।'),
+          ),
+        );
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'সূরার বিস্তারিত লোড করা যায়নি।';
+        _error =
+            'সূরার বিস্তারিত লোড করা যায়নি। একবার ইন্টারনেট অন করে এই সূরা খুলুন, পরে অফলাইনে পাবেন।';
         _isLoading = false;
       });
     }
@@ -264,9 +276,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE7F7F3), Color(0xFFF0FBF8)],
+          colors: [BrandColors.tintBackground, Color(0xFFF2FBFD)],
         ),
-        border: Border.all(color: const Color(0xFFD7EAE4)),
+        border: Border.all(color: BrandColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,7 +288,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF14493F),
+              color: BrandColors.textPrimary,
             ),
             textDirection: TextDirection.rtl,
           ),
@@ -284,11 +296,29 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
           Text(
             '${_toBanglaDigits(detail.surahNo.toString())}. ${detail.surahName} • ${_revelationLabel(detail.revelationPlace)} • ${_toBanglaDigits(detail.totalAyah.toString())} আয়াত',
             style: const TextStyle(
-              color: Color(0xFF3E6860),
+              color: BrandColors.textSecondary,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
           ),
+          if (_usingCachedContent) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: BrandColors.tintBackgroundStrong,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Text(
+                'Offline saved content',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: BrandColors.primaryDark,
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 10),
           if (hasReciters)
             InputDecorator(
@@ -352,7 +382,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 _formatDuration(_position),
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF4F6962),
+                  color: BrandColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -361,7 +391,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 _formatDuration(_duration),
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF4F6962),
+                  color: BrandColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -375,6 +405,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   onPressed: hasReciters && !_isPreparingAudio
                       ? _togglePlayPause
                       : null,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BrandColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
                   icon: _isPreparingAudio
                       ? const SizedBox(
                           width: 16,
@@ -394,6 +428,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 onPressed: _isPlaying || _position > Duration.zero
                     ? _stopAudio
                     : null,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: BrandColors.primaryDark,
+                  side: const BorderSide(color: BrandColors.border),
+                ),
                 icon: const Icon(Icons.stop_rounded),
                 label: const Text('Stop'),
               ),
@@ -402,6 +440,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 onPressed: hasReciters && !_isDownloadingAudio
                     ? _downloadSelectedAudio
                     : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: BrandColors.tintBackgroundStrong,
+                  foregroundColor: BrandColors.primaryDark,
+                ),
                 icon: _isDownloadingAudio
                     ? const SizedBox(
                         width: 16,
@@ -432,7 +474,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFDDEBE6)),
+        border: Border.all(color: BrandColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -444,14 +486,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 height: 28,
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFE5F3EF),
+                  color: BrandColors.tintBackground,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
                   _toBanglaDigits((index + 1).toString()),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F5B4F),
+                    color: BrandColors.primaryDark,
                   ),
                 ),
               ),
@@ -460,7 +502,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 'আরবি + বাংলা',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF4B6F66),
+                  color: BrandColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -478,7 +520,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   fontSize: 24,
                   height: 1.7,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF103F35),
+                  color: BrandColors.textPrimary,
                 ),
               ),
             ),
@@ -490,7 +532,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               style: const TextStyle(
                 fontSize: 15,
                 height: 1.6,
-                color: Color(0xFF233E37),
+                color: BrandColors.textPrimary,
               ),
             ),
           ],
@@ -508,9 +550,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         Navigator.of(context).pop(_didDownloadAudio);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF4F8F7),
+        backgroundColor: BrandColors.screenBackground,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFF4F8F7),
+          backgroundColor: BrandColors.primary,
+          foregroundColor: Colors.white,
           leading: IconButton(
             onPressed: () => Navigator.of(context).pop(_didDownloadAudio),
             icon: const Icon(Icons.arrow_back_rounded),
@@ -528,6 +571,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     const SizedBox(height: 8),
                     FilledButton(
                       onPressed: _loadSurahDetail,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: BrandColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
                       child: const Text('আবার চেষ্টা করুন'),
                     ),
                   ],

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../app/brand_colors.dart';
 import '../app/route_names.dart';
 
 Widget bottomNav(BuildContext context, int active) {
+  const activeColor = BrandColors.primary;
+  const inactiveColor = Color(0xFF7E93A0);
+
   final items = <({String label, IconData icon, String? routeName})>[
     (label: 'Home', icon: Icons.home_filled, routeName: RouteNames.activity),
     (label: 'Discover', icon: Icons.explore_outlined, routeName: null),
@@ -55,14 +59,14 @@ Widget bottomNav(BuildContext context, int active) {
                 Icon(
                   item.icon,
                   size: 20,
-                  color: isActive ? const Color(0xFF14A3B8) : Colors.black45,
+                  color: isActive ? activeColor : inactiveColor,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   item.label,
                   style: TextStyle(
                     fontSize: 10,
-                    color: isActive ? const Color(0xFF14A3B8) : Colors.black45,
+                    color: isActive ? activeColor : inactiveColor,
                   ),
                 ),
               ],
