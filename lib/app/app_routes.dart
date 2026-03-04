@@ -7,6 +7,7 @@ import '../screens/about_screen.dart';
 import '../screens/profile_preferences_screen.dart';
 import '../screens/privacy_policy_screen.dart';
 import '../screens/quran_screen.dart';
+import '../screens/qibla_compass_screen.dart';
 import '../screens/ramadan_splash_screen.dart';
 import '../screens/signup_screen.dart';
 import '../screens/ui_preview_home.dart';
@@ -28,6 +29,8 @@ class AppRoutes {
         return _page(const DailyActivityScreen(), settings);
       case RouteNames.quran:
         return _page(const QuranScreen(), settings);
+      case RouteNames.prayerCompass:
+        return _page(const QiblaCompassScreen(), settings);
       case RouteNames.privacyPolicy:
         return _page(const PrivacyPolicyScreen(), settings);
       case RouteNames.about:

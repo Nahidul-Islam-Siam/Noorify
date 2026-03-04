@@ -449,7 +449,7 @@ class _QuranScreenState extends State<QuranScreen> {
                             Icons.info_outline_rounded,
                             color: Colors.white,
                             size: 19,
-                          ), 
+                          ),
                         ),
                       ),
                     ],
@@ -599,11 +599,12 @@ class _QuranScreenState extends State<QuranScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               if (_usingCachedContent)
                 Container(
-                  margin: const EdgeInsets.only(right: 8),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 6,
@@ -623,26 +624,25 @@ class _QuranScreenState extends State<QuranScreen> {
                   ),
                 ),
               _FilterChipButton(
-                label: 'সব',
+                label: '\u09b8\u09ac',
                 selected: _filter == 'all',
                 onTap: () => setState(() => _filter = 'all'),
               ),
-              const SizedBox(width: 8),
               _FilterChipButton(
-                label: 'মক্কী',
+                label: '\u09ae\u0995\u09cd\u0995\u09c0',
                 selected: _filter == 'meccan',
                 onTap: () => setState(() => _filter = 'meccan'),
               ),
-              const SizedBox(width: 8),
               _FilterChipButton(
-                label: 'মাদানী',
+                label: '\u09ae\u09be\u09a6\u09be\u09a8\u09c0',
                 selected: _filter == 'medinan',
                 onTap: () => setState(() => _filter = 'medinan'),
               ),
-              const Spacer(),
               FilterChip(
                 selected: _showOnlyDownloaded,
-                label: const Text('ডাউনলোডেড'),
+                label: const Text(
+                  '\u09a1\u09be\u0989\u09a8\u09b2\u09cb\u09a1\u09c7\u09a1',
+                ),
                 selectedColor: BrandColors.tintBackgroundStrong,
                 checkmarkColor: BrandColors.primaryDark,
                 side: const BorderSide(color: BrandColors.border),

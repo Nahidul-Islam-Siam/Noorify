@@ -37,6 +37,7 @@ dependencies:
   google_fonts: ^6.3.2
   geolocator: ^14.0.2
   geocoding: ^4.0.0
+  flutter_compass: ^0.8.1
   adhan_dart: ^1.2.0
   flutter_local_notifications: ^19.4.2
   timezone: ^0.10.1
