@@ -176,7 +176,9 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     final message = tone == AppAlertTone.adhan
         ? 'Alert tone: ${alertToneLabel(tone)}. Add adhan_alert.mp3 in android/app/src/main/res/raw/'
         : 'Alert tone: ${alertToneLabel(tone)}';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
