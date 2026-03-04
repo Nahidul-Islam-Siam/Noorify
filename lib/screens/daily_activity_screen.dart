@@ -575,45 +575,70 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     final tone = alertToneNotifier.value;
-    final playSound = alertTonePlaySound(tone);
-    final resolvedChannelId = channelIdForTone(channelId);
+    NotificationDetails detailsForTone(AppAlertTone value) {
+      final valuePlaySound = alertTonePlaySound(value);
+      return NotificationDetails(
+        android: AndroidNotificationDetails(
+          channelIdForTone(channelId, tone: value),
+          channelName,
+          channelDescription: '$channelDescription (${alertToneLabel(value)})',
+          importance: Importance.max,
+          priority: Priority.high,
+          playSound: valuePlaySound,
+          sound: alertToneSound(value),
+          audioAttributesUsage: alertToneUsage(value),
+        ),
+        iOS: DarwinNotificationDetails(presentSound: valuePlaySound),
+      );
+    }
 
-    final details = NotificationDetails(
-      android: AndroidNotificationDetails(
-        resolvedChannelId,
-        channelName,
-        channelDescription: '$channelDescription (${alertToneLabel(tone)})',
-        importance: Importance.max,
-        priority: Priority.high,
-        playSound: playSound,
-        sound: alertToneSound(tone),
-        audioAttributesUsage: alertToneUsage(tone),
-      ),
-      iOS: DarwinNotificationDetails(presentSound: playSound),
-    );
-
-    try {
+    Future<void> scheduleWithDetails(
+      NotificationDetails details, {
+      required AndroidScheduleMode mode,
+    }) async {
       await localNotificationsPlugin.zonedSchedule(
         id,
         title,
         body,
         scheduled,
         details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: mode,
         payload: payload,
+      );
+    }
+
+    final details = detailsForTone(tone);
+
+    try {
+      await scheduleWithDetails(
+        details,
+        mode: AndroidScheduleMode.exactAllowWhileIdle,
       );
     } on PlatformException catch (e) {
       // Android 13/14 may block exact alarms unless special permission is granted.
       if (e.code == 'exact_alarms_not_permitted') {
-        await localNotificationsPlugin.zonedSchedule(
-          id,
-          title,
-          body,
-          scheduled,
+        await scheduleWithDetails(
           details,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          payload: payload,
+          mode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
+      } else if (tone == AppAlertTone.adhan) {
+        // If raw adhan sound is missing/invalid, fallback to default tone.
+        final fallback = detailsForTone(AppAlertTone.appDefault);
+        try {
+          await scheduleWithDetails(
+            fallback,
+            mode: AndroidScheduleMode.exactAllowWhileIdle,
+          );
+        } on PlatformException catch (fallbackError) {
+          if (fallbackError.code == 'exact_alarms_not_permitted') {
+            await scheduleWithDetails(
+              fallback,
+              mode: AndroidScheduleMode.inexactAllowWhileIdle,
+            );
+          } else {
+            rethrow;
+          }
+        }
       } else {
         rethrow;
       }
@@ -945,6 +970,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       _isFetchingPrayerSchedule = false;
     }
 
+    if (!mounted) return;
     _recalculatePrayerTimesForToday();
   }
 

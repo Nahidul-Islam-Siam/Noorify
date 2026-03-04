@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import '../app/app_globals.dart';
 import '../app/route_names.dart';
 import '../widgets/bottom_nav.dart';
@@ -143,15 +144,26 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
       iOS: DarwinNotificationDetails(presentSound: playSound),
     );
 
-    await localNotificationsPlugin.show(
-      sehri ? 9001 : 9002,
-      sehri ? 'Sehri Alert (Test)' : 'Iftar Alert (Test)',
-      sehri
-          ? 'Test notification for Sehri alert is working.'
-          : 'Test notification for Iftar alert is working.',
-      details,
-      payload: sehri ? 'sehri_test' : 'iftar_test',
-    );
+    try {
+      await localNotificationsPlugin.show(
+        sehri ? 9001 : 9002,
+        sehri ? 'Sehri Alert (Test)' : 'Iftar Alert (Test)',
+        sehri
+            ? 'Test notification for Sehri alert is working.'
+            : 'Test notification for Iftar alert is working.',
+        details,
+        payload: sehri ? 'sehri_test' : 'iftar_test',
+      );
+    } on PlatformException catch (_) {
+      if (!mounted) return;
+      final message = tone == AppAlertTone.adhan
+          ? 'Adhan file missing. Add adhan_alert.mp3 in android/app/src/main/res/raw and restart app.'
+          : 'Could not send test alert on this device.';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      return;
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(

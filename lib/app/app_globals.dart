@@ -60,8 +60,9 @@ String alertToneChannelSuffix(AppAlertTone tone) {
   }
 }
 
-String channelIdForTone(String baseChannelId) {
-  return '${baseChannelId}_${alertToneChannelSuffix(alertToneNotifier.value)}';
+String channelIdForTone(String baseChannelId, {AppAlertTone? tone}) {
+  final resolvedTone = tone ?? alertToneNotifier.value;
+  return '${baseChannelId}_${alertToneChannelSuffix(resolvedTone)}';
 }
 
 AndroidNotificationSound? alertToneSound(AppAlertTone tone) {
