@@ -10,9 +10,14 @@ import '../services/quran_api_service.dart';
 import '../services/quran_offline_download_service.dart';
 
 class SurahDetailScreen extends StatefulWidget {
-  const SurahDetailScreen({super.key, required this.chapter});
+  const SurahDetailScreen({
+    super.key,
+    required this.chapter,
+    this.autoStartAudio = false,
+  });
 
   final QuranChapter chapter;
+  final bool autoStartAudio;
 
   @override
   State<SurahDetailScreen> createState() => _SurahDetailScreenState();
@@ -161,6 +166,16 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       return '${hours.toString().padLeft(2, '0')}:$minutes:$seconds';
     }
     return '$minutes:$seconds';
+  }
+
+  int _activeAyahIndex(int totalAyah) {
+    if (totalAyah <= 0) return -1;
+    final totalMs = _duration.inMilliseconds;
+    if (totalMs <= 0) return -1;
+    final currentMs = _position.inMilliseconds.clamp(0, totalMs);
+    final progress = currentMs / totalMs;
+    final index = (progress * totalAyah).floor();
+    return index.clamp(0, totalAyah - 1);
   }
 
   Future<void> _onReciterChanged(int? reciterId) async {
@@ -397,6 +412,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 2),
+          const Text(
+            'Audio progress অনুযায়ী আয়াত হাইলাইট হবে',
+            style: TextStyle(
+              fontSize: 11,
+              color: BrandColors.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -468,13 +492,18 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     required int index,
     required String arabic,
     required String bengali,
+    required bool highlighted,
   }) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: highlighted ? const Color(0xFFEAF7FB) : Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: BrandColors.border),
+        border: Border.all(
+          color: highlighted ? BrandColors.primaryLight : BrandColors.border,
+          width: highlighted ? 1.5 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -485,8 +514,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 width: 28,
                 height: 28,
                 alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: BrandColors.tintBackground,
+                decoration: BoxDecoration(
+                  color: highlighted
+                      ? BrandColors.tintBackgroundStrong
+                      : BrandColors.tintBackground,
                   shape: BoxShape.circle,
                 ),
                 child: Text(
@@ -498,11 +529,13 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'আরবি + বাংলা',
+              Text(
+                highlighted ? 'আরবি + বাংলা • চলছে' : 'আরবি + বাংলা',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: BrandColors.textSecondary,
+                  color: highlighted
+                      ? BrandColors.primaryDark
+                      : BrandColors.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -587,13 +620,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     detail.arabicAyahs.length,
                     detail.bengaliAyahs.length,
                   );
+                  final activeAyahIndex = _activeAyahIndex(totalAyah);
 
                   return Column(
                     children: [
                       _buildAudioCard(detail),
                       Expanded(
                         child: ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
                           itemCount: totalAyah,
                           separatorBuilder: (_, index) =>
                               const SizedBox(height: 10),
@@ -609,6 +643,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                               index: index,
                               arabic: arabic,
                               bengali: bengali,
+                              highlighted: index == activeAyahIndex,
                             );
                           },
                         ),

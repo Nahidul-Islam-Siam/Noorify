@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app/brand_colors.dart';
 import '../models/quran_models.dart';
 import 'surah_detail_screen.dart';
 import '../services/quran_api_service.dart';
+import '../services/quran_last_read_service.dart';
 import '../widgets/bottom_nav.dart';
 
 class QuranScreen extends StatefulWidget {
@@ -17,6 +20,7 @@ class _QuranScreenState extends State<QuranScreen> {
   static const _quickLinkIds = [18, 36, 55, 67];
 
   final QuranApiService _api = QuranApiService();
+  final QuranLastReadService _lastReadService = QuranLastReadService();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -28,6 +32,7 @@ class _QuranScreenState extends State<QuranScreen> {
   String _filter = 'all';
   bool _showOnlyDownloaded = false;
   bool _usingCachedContent = false;
+  int? _lastReadSurahNo;
 
   List<QuranChapter> _chapters = [];
 
@@ -35,6 +40,7 @@ class _QuranScreenState extends State<QuranScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    _restoreLastRead();
     _loadChapters();
   }
 
@@ -50,6 +56,12 @@ class _QuranScreenState extends State<QuranScreen> {
   void _onSearchChanged() {
     if (!mounted) return;
     setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+  }
+
+  Future<void> _restoreLastRead() async {
+    final saved = await _lastReadService.readLastReadSurahNo();
+    if (!mounted || saved == null) return;
+    setState(() => _lastReadSurahNo = saved);
   }
 
   Future<void> _loadChapters() async {
@@ -110,10 +122,21 @@ class _QuranScreenState extends State<QuranScreen> {
     return place;
   }
 
-  Future<void> _showSurahDetail(QuranChapter chapter) async {
+  Future<void> _showSurahDetail(
+    QuranChapter chapter, {
+    bool autoStartAudio = false,
+  }) async {
+    if (_lastReadSurahNo != chapter.surahNo) {
+      setState(() => _lastReadSurahNo = chapter.surahNo);
+      unawaited(_lastReadService.saveLastReadSurahNo(chapter.surahNo));
+    }
+
     final downloaded = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
-        builder: (_) => SurahDetailScreen(chapter: chapter),
+        builder: (_) => SurahDetailScreen(
+          chapter: chapter,
+          autoStartAudio: autoStartAudio,
+        ),
       ),
     );
     if (!mounted || downloaded != true) return;
@@ -159,21 +182,55 @@ class _QuranScreenState extends State<QuranScreen> {
         )
         .toList(growable: false);
 
+    final lastReadChapter = _chapters.firstWhere(
+      (chapter) => chapter.surahNo == (_lastReadSurahNo ?? 2),
+      orElse: () => quickLinks.first,
+    );
+
     return Container(
       decoration: const BoxDecoration(
-        color: BrandColors.primary,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            BrandColors.primaryDark,
+            BrandColors.primary,
+            BrandColors.primaryLight,
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(54),
+        ),
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(54),
+        ),
         child: Stack(
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: 0.24,
-                child: Image.asset(
-                  'assets/images/header-bg.png',
-                  fit: BoxFit.cover,
+            Positioned(
+              right: -28,
+              top: -34,
+              child: Container(
+                width: 132,
+                height: 132,
+                decoration: const BoxDecoration(
+                  color: Color(0x26FFFFFF),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Positioned(
+              left: -42,
+              bottom: -64,
+              child: Container(
+                width: 178,
+                height: 178,
+                decoration: const BoxDecoration(
+                  color: Color(0x17FFFFFF),
+                  shape: BoxShape.circle,
                 ),
               ),
             ),
@@ -182,80 +239,199 @@ class _QuranScreenState extends State<QuranScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Center(
-                    child: Text(
-                      'কুরআন',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'কুরআন',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Read • Listen • Offline',
+                              style: TextStyle(
+                                color: Color(0xDDFFFFFF),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Center(
-                    child: Text(
-                      'API • অডিও • অফলাইন',
-                      style: TextStyle(
-                        color: Color(0xD9FFFFFF),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _usingCachedContent
+                                  ? Icons.cloud_off_rounded
+                                  : Icons.cloud_done_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              _usingCachedContent ? 'Offline' : 'Live',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: _showVideoInfo,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.info_outline_rounded,
+                            color: Colors.white,
+                            size: 19,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _HeaderActionButton(
-                        icon: Icons.menu_book_outlined,
-                        label: 'তিলাওয়াত',
-                        onTap: () {},
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.25),
                       ),
-                      _HeaderActionButton(
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.bookmark_rounded,
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Last Read',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${lastReadChapter.surahName} • Surah ${lastReadChapter.surahNo}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: () => _showSurahDetail(lastReadChapter),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: BrandColors.primaryDark,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            minimumSize: const Size(0, 34),
+                          ),
+                          child: const Text('Continue'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _HeaderQuickActionChip(
                         icon: Icons.search_rounded,
-                        label: 'অনুসন্ধান',
+                        label: 'Search',
                         onTap: () => _searchFocusNode.requestFocus(),
                       ),
-                      _HeaderActionButton(
-                        icon: Icons.headphones_rounded,
-                        label: 'অডিও',
-                        onTap: () {
-                          if (_chapters.isEmpty) return;
-                          _showSurahDetail(_chapters.first);
-                        },
+                      _HeaderQuickActionChip(
+                        icon: Icons.menu_book_outlined,
+                        label: 'Tilawat',
+                        onTap: () => _showSurahDetail(lastReadChapter),
                       ),
-                      _HeaderActionButton(
+                      _HeaderQuickActionChip(
+                        icon: Icons.headphones_rounded,
+                        label: 'Audio',
+                        onTap: () => _showSurahDetail(
+                          lastReadChapter,
+                          autoStartAudio: true,
+                        ),
+                      ),
+                      _HeaderQuickActionChip(
                         icon: Icons.ondemand_video_rounded,
-                        label: 'ভিডিও',
+                        label: 'Video',
                         onTap: _showVideoInfo,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    height: 40,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: quickLinks.length,
-                      separatorBuilder: (_, index) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final chapter = quickLinks[index];
-                        return ActionChip(
-                          backgroundColor: Colors.white.withValues(alpha: 0.22),
-                          side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.32),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Quick Surah',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final chapter in quickLinks) ...[
+                          _HeaderSurahChip(
+                            label: chapter.surahNameArabic,
+                            onTap: () => _showSurahDetail(chapter),
                           ),
-                          label: Text(
-                            chapter.surahNameArabic,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                            ),
-                          ),
-                          onPressed: () => _showSurahDetail(chapter),
-                        );
-                      },
+                          const SizedBox(width: 8),
+                        ],
+                      ],
                     ),
                   ),
                 ],
@@ -394,7 +570,10 @@ class _QuranScreenState extends State<QuranScreen> {
                               chapter.revelationPlace,
                             ),
                             onTap: () => _showSurahDetail(chapter),
-                            onAudio: () => _showSurahDetail(chapter),
+                            onAudio: () => _showSurahDetail(
+                              chapter,
+                              autoStartAudio: true,
+                            ),
                           ),
                         );
                       },
@@ -408,8 +587,8 @@ class _QuranScreenState extends State<QuranScreen> {
   }
 }
 
-class _HeaderActionButton extends StatelessWidget {
-  const _HeaderActionButton({
+class _HeaderQuickActionChip extends StatelessWidget {
+  const _HeaderQuickActionChip({
     required this.icon,
     required this.label,
     required this.onTap,
@@ -422,32 +601,60 @@ class _HeaderActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
       onTap: onTap,
-      child: SizedBox(
-        width: 74,
-        child: Column(
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.32)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: Colors.white, size: 28),
-            ),
-            const SizedBox(height: 6),
+            Icon(icon, size: 15, color: Colors.white),
+            const SizedBox(width: 5),
             Text(
               label,
-              textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderSurahChip extends StatelessWidget {
+  const _HeaderSurahChip({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
