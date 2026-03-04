@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hijri/hijri_calendar.dart';
@@ -29,8 +30,13 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   double? _latitude;
   double? _longitude;
   DateTime? _lastPrayerCalcDate;
-  DateTime? _todayMaghrib;
-  bool _maghribModalShownToday = false;
+  DateTime? _todayFajr;
+  DateTime? _todayIftar;
+  DateTime? _nextSehriAt;
+  DateTime? _nextIftarAt;
+  DateTime? _lastShownSehriModalAt;
+  DateTime? _lastShownIftarModalAt;
+  bool _isAlertDialogOpen = false;
   String _locationLabel = 'Detecting location...';
   String _countdownLabel = 'Calculating prayer...';
   String _activePrayer = 'Dzuhr';
@@ -69,13 +75,14 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       initialPage: _prayerOrder.indexOf(_activePrayer),
     );
     appLanguageNotifier.addListener(_onLanguageChanged);
-    maghribAlertEnabledNotifier.addListener(_onMaghribAlertToggleChanged);
+    sehriAlertEnabledNotifier.addListener(_onSehriAlertToggleChanged);
+    iftarAlertEnabledNotifier.addListener(_onIftarAlertToggleChanged);
     _loadPrayerData();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _now = DateTime.now());
       _updateCountdown();
-      _maybeShowMaghribModal();
+      _maybeShowMealAlertsModal();
       if (_lastPrayerCalcDate == null ||
           _lastPrayerCalcDate!.day != _now.day ||
           _lastPrayerCalcDate!.month != _now.month ||
@@ -88,7 +95,8 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   @override
   void dispose() {
     appLanguageNotifier.removeListener(_onLanguageChanged);
-    maghribAlertEnabledNotifier.removeListener(_onMaghribAlertToggleChanged);
+    sehriAlertEnabledNotifier.removeListener(_onSehriAlertToggleChanged);
+    iftarAlertEnabledNotifier.removeListener(_onIftarAlertToggleChanged);
     _clockTimer.cancel();
     _prayerPageController.dispose();
     super.dispose();
@@ -99,13 +107,24 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     setState(() {});
   }
 
-  Future<void> _onMaghribAlertToggleChanged() async {
-    if (maghribAlertEnabledNotifier.value) {
-      if (_todayMaghrib != null) {
-        await _scheduleMaghribNotification(_todayMaghrib!);
+  Future<void> _onSehriAlertToggleChanged() async {
+    if (sehriAlertEnabledNotifier.value) {
+      if (_nextSehriAt != null) {
+        await _scheduleSehriNotification(_nextSehriAt!);
       }
     } else {
-      await _cancelMaghribNotification();
+      await _cancelSehriNotification();
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _onIftarAlertToggleChanged() async {
+    if (iftarAlertEnabledNotifier.value) {
+      if (_nextIftarAt != null) {
+        await _scheduleIftarNotification(_nextIftarAt!);
+      }
+    } else {
+      await _cancelIftarNotification();
     }
     if (mounted) setState(() {});
   }
@@ -247,13 +266,21 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       ? '\u09aa\u09cd\u09b0\u09be\u09b0\u09cd\u09a5\u09a8\u09be\u09b0 \u09b8\u09ae\u09df'
       : 'Prayer Time';
 
-  String _localizedMaghribTitle() => _isBangla
-      ? '\u09ae\u09be\u0997\u09b0\u09bf\u09ac \u098f\u09b2\u09be\u09b0\u09cd\u099f'
-      : 'Maghrib Alert';
+  String _localizedSehriAlertTitle() => _isBangla
+      ? '\u09b8\u09c7\u09b9\u09b0\u09bf \u098f\u09b2\u09be\u09b0\u09cd\u099f'
+      : 'Sehri Alert';
 
-  String _localizedMaghribBody() => _isBangla
-      ? '\u09ae\u09be\u0997\u09b0\u09bf\u09ac\u09c7\u09b0 \u09b8\u09ae\u09df \u09b9\u09df\u09c7\u099b\u09c7\u0964'
-      : 'It is time for Maghrib prayer.';
+  String _localizedSehriAlertBody() => _isBangla
+      ? '\u09b8\u09c7\u09b9\u09b0\u09bf\u09b0 \u09b8\u09ae\u09df \u09b9\u09df\u09c7\u099b\u09c7\u0964'
+      : 'It is time for Sehri.';
+
+  String _localizedIftarAlertTitle() => _isBangla
+      ? '\u0987\u09ab\u09a4\u09be\u09b0 \u098f\u09b2\u09be\u09b0\u09cd\u099f'
+      : 'Iftar Alert';
+
+  String _localizedIftarAlertBody() => _isBangla
+      ? '\u0987\u09ab\u09a4\u09be\u09b0\u09c7\u09b0 \u09b8\u09ae\u09df \u09b9\u09df\u09c7\u099b\u09c7\u0964'
+      : 'It is time for Iftar.';
 
   String _localizedStopAlerts() => _isBangla
       ? '\u098f\u09b2\u09be\u09b0\u09cd\u099f \u09ac\u09a8\u09cd\u09a7'
@@ -264,64 +291,176 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   String _localizedPrayerTime(String value) =>
       _isBangla ? _toBanglaDigits(value) : value;
 
-  Future<void> _scheduleMaghribNotification(DateTime maghribTime) async {
-    if (!maghribAlertEnabledNotifier.value) return;
+  String _localizedNextSehriLabel() => _isBangla
+      ? '\u09aa\u09b0\u09ac\u09b0\u09cd\u09a4\u09c0 \u09b8\u09c7\u09b9\u09b0\u09bf'
+      : 'Next Sehri';
 
-    var scheduled = tz.TZDateTime.from(maghribTime, tz.local);
+  String _localizedNextIftarLabel() => _isBangla
+      ? '\u09aa\u09b0\u09ac\u09b0\u09cd\u09a4\u09c0 \u0987\u09ab\u09a4\u09be\u09b0'
+      : 'Next Iftar';
+
+  String _localizedDawnPrefix() => _isBangla ? '\u09ad\u09cb\u09b0' : 'Dawn';
+
+  String _localizedSunsetPrefix() =>
+      _isBangla ? '\u09b8\u09a8\u09cd\u09a7\u09cd\u09af\u09be' : 'Sunset';
+
+  String _localizedRemainingLabel() => _isBangla
+      ? '\u0985\u09ac\u09b6\u09bf\u09b7\u09cd\u099f \u09b8\u09ae\u09df'
+      : 'Remaining';
+
+  String _localizedTimeOrPlaceholder(DateTime? time) {
+    if (time == null) return '--:--';
+    return _localizedPrayerTime(_formatPrayerTime(time));
+  }
+
+  String _formattedIftarRemaining() {
+    if (_nextIftarAt == null) return '--:--:--';
+    final remaining = _nextIftarAt!.difference(_now);
+    final safe = remaining.isNegative ? Duration.zero : remaining;
+    final hh = safe.inHours.toString().padLeft(2, '0');
+    final mm = (safe.inMinutes % 60).toString().padLeft(2, '0');
+    final ss = (safe.inSeconds % 60).toString().padLeft(2, '0');
+    final value = '$hh:$mm:$ss';
+    return _isBangla ? _toBanglaDigits(value) : value;
+  }
+
+  Future<void> _scheduleMealNotification({
+    required int id,
+    required String channelId,
+    required String channelName,
+    required String channelDescription,
+    required DateTime at,
+    required String title,
+    required String body,
+    required String payload,
+  }) async {
+    var scheduled = tz.TZDateTime.from(at, tz.local);
     final nowTz = tz.TZDateTime.now(tz.local);
     if (scheduled.isBefore(nowTz)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
 
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
-        'maghrib_alert_channel',
-        'Maghrib Alerts',
-        channelDescription: 'Alert when Maghrib time starts',
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
         importance: Importance.max,
         priority: Priority.high,
       ),
-      iOS: DarwinNotificationDetails(),
+      iOS: const DarwinNotificationDetails(),
     );
 
-    await localNotificationsPlugin.zonedSchedule(
-      maghribNotificationId,
-      _localizedMaghribTitle(),
-      _localizedMaghribBody(),
-      scheduled,
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      payload: 'maghrib',
+    try {
+      await localNotificationsPlugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduled,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: payload,
+      );
+    } on PlatformException catch (e) {
+      // Android 13/14 may block exact alarms unless special permission is granted.
+      if (e.code == 'exact_alarms_not_permitted') {
+        await localNotificationsPlugin.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduled,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: payload,
+        );
+      } else {
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> _scheduleSehriNotification(DateTime sehriTime) async {
+    if (!sehriAlertEnabledNotifier.value) return;
+    await _scheduleMealNotification(
+      id: sehriNotificationId,
+      channelId: 'sehri_alert_channel',
+      channelName: 'Sehri Alerts',
+      channelDescription: 'Alert when Sehri time starts',
+      at: sehriTime,
+      title: _localizedSehriAlertTitle(),
+      body: _localizedSehriAlertBody(),
+      payload: 'sehri',
     );
   }
 
-  Future<void> _cancelMaghribNotification() async {
-    await localNotificationsPlugin.cancel(maghribNotificationId);
+  Future<void> _scheduleIftarNotification(DateTime iftarTime) async {
+    if (!iftarAlertEnabledNotifier.value) return;
+    await _scheduleMealNotification(
+      id: iftarNotificationId,
+      channelId: 'iftar_alert_channel',
+      channelName: 'Iftar Alerts',
+      channelDescription: 'Alert when Iftar time starts',
+      at: iftarTime,
+      title: _localizedIftarAlertTitle(),
+      body: _localizedIftarAlertBody(),
+      payload: 'iftar',
+    );
   }
 
-  void _maybeShowMaghribModal() {
-    if (!maghribAlertEnabledNotifier.value) return;
-    if (_todayMaghrib == null || _maghribModalShownToday) return;
-    if (!mounted) return;
+  Future<void> _cancelSehriNotification() async {
+    await localNotificationsPlugin.cancel(sehriNotificationId);
+  }
 
-    final now = DateTime.now();
-    final start = _todayMaghrib!;
-    final end = start.add(const Duration(minutes: 1));
-    if (now.isBefore(start) || now.isAfter(end)) return;
+  Future<void> _cancelIftarNotification() async {
+    await localNotificationsPlugin.cancel(iftarNotificationId);
+  }
 
-    _maghribModalShownToday = true;
+  Future<void> _refreshMealAlertScheduling() async {
+    try {
+      if (_nextSehriAt != null) {
+        if (sehriAlertEnabledNotifier.value) {
+          await _scheduleSehriNotification(_nextSehriAt!);
+        } else {
+          await _cancelSehriNotification();
+        }
+      }
+
+      if (_nextIftarAt != null) {
+        if (iftarAlertEnabledNotifier.value) {
+          await _scheduleIftarNotification(_nextIftarAt!);
+        } else {
+          await _cancelIftarNotification();
+        }
+      }
+    } catch (e) {
+      debugPrint('Meal alert scheduling failed: $e');
+    }
+  }
+
+  bool _isNowWithinAlertWindow(DateTime eventTime) {
+    final end = eventTime.add(const Duration(minutes: 1));
+    return !_now.isBefore(eventTime) && !_now.isAfter(end);
+  }
+
+  void _showMealAlertModal({
+    required String title,
+    required String body,
+    required Future<void> Function() onStopPressed,
+  }) {
+    if (!mounted || _isAlertDialogOpen) return;
+    _isAlertDialogOpen = true;
+
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          title: Text(_localizedMaghribTitle()),
-          content: Text(_localizedMaghribBody()),
+          title: Text(title),
+          content: Text(body),
           actions: [
             TextButton(
               onPressed: () async {
-                maghribAlertEnabledNotifier.value = false;
-                await _cancelMaghribNotification();
+                await onStopPressed();
                 if (context.mounted) Navigator.of(context).pop();
               },
               child: Text(_localizedStopAlerts()),
@@ -333,7 +472,44 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
           ],
         );
       },
-    );
+    ).whenComplete(() {
+      _isAlertDialogOpen = false;
+    });
+  }
+
+  void _maybeShowMealAlertsModal() {
+    if (!mounted || _isAlertDialogOpen) return;
+
+    if (sehriAlertEnabledNotifier.value &&
+        _todayFajr != null &&
+        _lastShownSehriModalAt != _todayFajr &&
+        _isNowWithinAlertWindow(_todayFajr!)) {
+      _lastShownSehriModalAt = _todayFajr;
+      _showMealAlertModal(
+        title: _localizedSehriAlertTitle(),
+        body: _localizedSehriAlertBody(),
+        onStopPressed: () async {
+          sehriAlertEnabledNotifier.value = false;
+          await _cancelSehriNotification();
+        },
+      );
+      return;
+    }
+
+    if (iftarAlertEnabledNotifier.value &&
+        _todayIftar != null &&
+        _lastShownIftarModalAt != _todayIftar &&
+        _isNowWithinAlertWindow(_todayIftar!)) {
+      _lastShownIftarModalAt = _todayIftar;
+      _showMealAlertModal(
+        title: _localizedIftarAlertTitle(),
+        body: _localizedIftarAlertBody(),
+        onStopPressed: () async {
+          iftarAlertEnabledNotifier.value = false;
+          await _cancelIftarNotification();
+        },
+      );
+    }
   }
 
   String get _displayPrayer => _selectedPrayer ?? _activePrayer;
@@ -416,6 +592,32 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     }
   }
 
+  CalculationParameters _buildCalculationParams() {
+    final params = CalculationMethodParameters.karachi();
+    params.madhab = Madhab.hanafi;
+    return params;
+  }
+
+  PrayerTimes _prayerTimesForDate(DateTime date) {
+    return PrayerTimes(
+      date: date,
+      coordinates: Coordinates(_latitude!, _longitude!),
+      calculationParameters: _buildCalculationParams(),
+    );
+  }
+
+  _RamadanMealData _buildRamadanMealData({
+    required DateTime now,
+    required DateTime fajr,
+    required DateTime maghrib,
+    required DateTime tomorrowFajr,
+    required DateTime tomorrowMaghrib,
+  }) {
+    final nextSehri = now.isBefore(fajr) ? fajr : tomorrowFajr;
+    final nextIftar = now.isBefore(maghrib) ? maghrib : tomorrowMaghrib;
+    return _RamadanMealData(nextSehri: nextSehri, nextIftar: nextIftar);
+  }
+
   void _recalculatePrayerTimesForToday() {
     if (_latitude == null || _longitude == null) return;
     final isNewDay =
@@ -424,12 +626,9 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
         _lastPrayerCalcDate!.month != _now.month ||
         _lastPrayerCalcDate!.year != _now.year;
 
-    final params = CalculationMethodParameters.karachi();
-    params.madhab = Madhab.hanafi;
-    final prayers = PrayerTimes(
-      date: DateTime.now(),
-      coordinates: Coordinates(_latitude!, _longitude!),
-      calculationParameters: params,
+    final prayers = _prayerTimesForDate(_now);
+    final tomorrowPrayers = _prayerTimesForDate(
+      _now.add(const Duration(days: 1)),
     );
 
     final fajr = prayers.fajr.toLocal();
@@ -438,6 +637,13 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     final maghrib = prayers.maghrib.toLocal();
     final isha = prayers.isha.toLocal();
     final ishaBefore = prayers.ishaBefore.toLocal();
+    final mealData = _buildRamadanMealData(
+      now: _now,
+      fajr: fajr,
+      maghrib: maghrib,
+      tomorrowFajr: tomorrowPrayers.fajr.toLocal(),
+      tomorrowMaghrib: tomorrowPrayers.maghrib.toLocal(),
+    );
     final activeData = _buildActivePrayerData(
       now: _now,
       fajr: fajr,
@@ -450,8 +656,12 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
     setState(() {
       _lastPrayerCalcDate = DateTime.now();
-      _todayMaghrib = maghrib;
-      if (isNewDay) _maghribModalShownToday = false;
+      _todayFajr = fajr;
+      _todayIftar = maghrib;
+      if (isNewDay) {
+        _lastShownSehriModalAt = null;
+        _lastShownIftarModalAt = null;
+      }
       _prayerTimes = {
         'Fajr': _formatPrayerTime(fajr),
         'Dzuhr': _formatPrayerTime(dzuhr),
@@ -463,12 +673,10 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       _countdownLabel = activeData.countdownLabel;
       _activeRemaining = activeData.remaining;
       _activeProgress = activeData.progress;
+      _nextSehriAt = mealData.nextSehri;
+      _nextIftarAt = mealData.nextIftar;
     });
-    if (maghribAlertEnabledNotifier.value) {
-      _scheduleMaghribNotification(maghrib);
-    } else {
-      _cancelMaghribNotification();
-    }
+    _refreshMealAlertScheduling();
     if (_selectedPrayer == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _syncPrayerPageToActive(animate: false);
@@ -479,12 +687,9 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   void _updateCountdown() {
     if (_prayerTimes['Fajr'] == '--:--') return;
     if (_latitude == null || _longitude == null) return;
-    final params = CalculationMethodParameters.karachi();
-    params.madhab = Madhab.hanafi;
-    final prayers = PrayerTimes(
-      date: DateTime.now(),
-      coordinates: Coordinates(_latitude!, _longitude!),
-      calculationParameters: params,
+    final prayers = _prayerTimesForDate(_now);
+    final tomorrowPrayers = _prayerTimesForDate(
+      _now.add(const Duration(days: 1)),
     );
 
     final fajr = prayers.fajr.toLocal();
@@ -493,6 +698,13 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     final maghrib = prayers.maghrib.toLocal();
     final isha = prayers.isha.toLocal();
     final ishaBefore = prayers.ishaBefore.toLocal();
+    final mealData = _buildRamadanMealData(
+      now: _now,
+      fajr: fajr,
+      maghrib: maghrib,
+      tomorrowFajr: tomorrowPrayers.fajr.toLocal(),
+      tomorrowMaghrib: tomorrowPrayers.maghrib.toLocal(),
+    );
     final activeData = _buildActivePrayerData(
       now: _now,
       fajr: fajr,
@@ -507,13 +719,18 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
         (activeData.name != _activePrayer ||
             activeData.countdownLabel != _countdownLabel ||
             activeData.progress != _activeProgress ||
-            activeData.remaining != _activeRemaining)) {
+            activeData.remaining != _activeRemaining ||
+            mealData.nextSehri != _nextSehriAt ||
+            mealData.nextIftar != _nextIftarAt)) {
       setState(() {
         _activePrayer = activeData.name;
         _countdownLabel = activeData.countdownLabel;
         _activeRemaining = activeData.remaining;
         _activeProgress = activeData.progress;
+        _nextSehriAt = mealData.nextSehri;
+        _nextIftarAt = mealData.nextIftar;
       });
+      _refreshMealAlertScheduling();
       if (_selectedPrayer == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _syncPrayerPageToActive(animate: true);
@@ -591,6 +808,124 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     return _isBangla ? _toBanglaDigits(value) : value;
   }
 
+  Widget _buildRamadanMealsSection() {
+    final sehriTime = _localizedTimeOrPlaceholder(_nextSehriAt);
+    final iftarTime = _localizedTimeOrPlaceholder(_nextIftarAt);
+    final sehriTrailing = '${_localizedDawnPrefix()} $sehriTime';
+    final iftarTrailing = '${_localizedSunsetPrefix()} $iftarTime';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD7E3D9)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 11, 14, 11),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.lunch_dining_outlined,
+                  size: 18,
+                  color: Color(0xFF5A6D61),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _localizedNextSehriLabel(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF25332D),
+                    ),
+                  ),
+                ),
+                Text(
+                  sehriTrailing,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: Color(0xFF25332D),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFDCE7DD)),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEAF2EB),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDDF0E3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.shopping_bag_outlined,
+                    size: 15,
+                    color: Color(0xFF0B8D69),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _localizedNextIftarLabel(),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF25332D),
+                    ),
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      iftarTrailing,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        color: Color(0xFF25332D),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_localizedRemainingLabel()} ${_formattedIftarRemaining()}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF4D5F56),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final gaugePrayerName = _localizedPrayerName(_displayPrayer);
@@ -660,7 +995,9 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                                       alignment: Alignment.centerRight,
                                       children: [
                                         ...previousChildren,
-                                        if (currentChild != null) currentChild,
+                                        ...?currentChild == null
+                                            ? null
+                                            : [currentChild],
                                       ],
                                     ),
                                 transitionBuilder: (child, animation) {
@@ -812,6 +1149,8 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 children: [
+                  _buildRamadanMealsSection(),
+                  const SizedBox(height: 12),
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -1095,6 +1434,13 @@ class _ActivityItem {
   final String title;
   int done;
   final int total;
+}
+
+class _RamadanMealData {
+  const _RamadanMealData({required this.nextSehri, required this.nextIftar});
+
+  final DateTime nextSehri;
+  final DateTime nextIftar;
 }
 
 class _ActivePrayerData {

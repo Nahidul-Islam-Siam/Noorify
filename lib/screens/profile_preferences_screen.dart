@@ -126,17 +126,49 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                 child: Row(
                   children: [
                     const Text(
-                      'Maghrib Alert',
+                      'Sehri Alert',
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     const Spacer(),
                     ValueListenableBuilder<bool>(
-                      valueListenable: maghribAlertEnabledNotifier,
+                      valueListenable: sehriAlertEnabledNotifier,
                       builder: (context, enabled, _) {
                         return Switch(
                           value: enabled,
-                          onChanged: (v) =>
-                              maghribAlertEnabledNotifier.value = v,
+                          onChanged: (v) => sehriAlertEnabledNotifier.value = v,
+                          activeThumbColor: const Color(0xFF14A3B8),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE1E8EC)),
+                ),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Iftar Alert',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: iftarAlertEnabledNotifier,
+                      builder: (context, enabled, _) {
+                        return Switch(
+                          value: enabled,
+                          onChanged: (v) => iftarAlertEnabledNotifier.value = v,
                           activeThumbColor: const Color(0xFF14A3B8),
                         );
                       },

@@ -4,15 +4,15 @@ import 'package:timezone/data/latest.dart' as tz_data;
 
 final FlutterLocalNotificationsPlugin localNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-const int maghribNotificationId = 1001;
+const int sehriNotificationId = 1001;
+const int iftarNotificationId = 1002;
 
 enum AppLanguage { english, bangla }
 
 final ValueNotifier<AppLanguage> appLanguageNotifier =
     ValueNotifier<AppLanguage>(AppLanguage.english);
-final ValueNotifier<bool> maghribAlertEnabledNotifier = ValueNotifier<bool>(
-  true,
-);
+final ValueNotifier<bool> sehriAlertEnabledNotifier = ValueNotifier<bool>(true);
+final ValueNotifier<bool> iftarAlertEnabledNotifier = ValueNotifier<bool>(true);
 
 Future<void> initializeNotifications() async {
   tz_data.initializeTimeZones();
