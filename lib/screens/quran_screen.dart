@@ -1,179 +1,349 @@
 import 'package:flutter/material.dart';
 
+import '../models/quran_models.dart';
+import 'surah_detail_screen.dart';
+import '../services/quran_api_service.dart';
 import '../widgets/bottom_nav.dart';
 
-class QuranScreen extends StatelessWidget {
+class QuranScreen extends StatefulWidget {
   const QuranScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const pageBg = Color(0xFFF2F5F4);
-    const surface = Colors.white;
-    const accent = Color(0xFF0B9D78);
-    const sectionBg = Color(0xFFEAF0EE);
+  State<QuranScreen> createState() => _QuranScreenState();
+}
 
-    final quickLinks = <String>[
-      'সূরা আল কাহফ',
-      'সূরা ইয়াসীন',
-      'সূরা আল-মুলক',
-      'সূরা আর-রহমান',
-    ];
+class _QuranScreenState extends State<QuranScreen> {
+  static const _quickLinkIds = [18, 36, 55, 67];
 
-    final surahItems = <_SurahItem>[
-      _SurahItem(number: 1, nameBn: 'সূরা আল ফাতিহা', subtitleBn: 'সূচনা'),
-      _SurahItem(number: 2, nameBn: 'সূরা আল বাকারা', subtitleBn: 'বকনা-বাছুর'),
-      _SurahItem(
-        number: 3,
-        nameBn: 'সূরা আল ইমরান',
-        subtitleBn: 'ইমরানের পরিবার',
+  final QuranApiService _api = QuranApiService();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+
+  final Set<int> _downloadedSurahNos = {};
+
+  bool _isLoading = true;
+  String? _error;
+  String _searchQuery = '';
+  String _filter = 'all';
+  bool _showOnlyDownloaded = false;
+
+  List<QuranChapter> _chapters = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+    _loadChapters();
+  }
+
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_onSearchChanged)
+      ..dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (!mounted) return;
+    setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+  }
+
+  Future<void> _loadChapters() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final chapters = await _api.fetchChapters();
+      if (!mounted) return;
+      setState(() {
+        _chapters = chapters;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'কুরআনের তালিকা লোড করা যায়নি।';
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<QuranChapter> get _filteredChapters {
+    return _chapters
+        .where((chapter) {
+          if (_showOnlyDownloaded &&
+              !_downloadedSurahNos.contains(chapter.surahNo)) {
+            return false;
+          }
+
+          if (_filter == 'meccan' && !chapter.isMeccan) return false;
+          if (_filter == 'medinan' && !chapter.isMedinan) return false;
+
+          if (_searchQuery.isEmpty) return true;
+          return chapter.surahNo.toString() == _searchQuery ||
+              chapter.surahName.toLowerCase().contains(_searchQuery) ||
+              chapter.surahNameArabic.contains(_searchQuery) ||
+              chapter.surahNameTranslation.toLowerCase().contains(_searchQuery);
+        })
+        .toList(growable: false);
+  }
+
+  String _revelationLabel(String place) {
+    final lower = place.toLowerCase();
+    if (lower.contains('mecca')) return 'মক্কী';
+    if (lower.contains('medina')) return 'মাদানী';
+    return place;
+  }
+
+  Future<void> _showSurahDetail(QuranChapter chapter) async {
+    final downloaded = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => SurahDetailScreen(chapter: chapter),
       ),
-      _SurahItem(number: 4, nameBn: 'সূরা আন নিসা', subtitleBn: 'মহিলা'),
-      _SurahItem(
-        number: 5,
-        nameBn: 'সূরা আল মায়িদাহ',
-        subtitleBn: 'খাদ্য পরিবেশিত টেবিল',
-      ),
-    ];
+    );
+    if (!mounted || downloaded != true) return;
+    setState(() => _downloadedSurahNos.add(chapter.surahNo));
+  }
 
-    return Scaffold(
-      backgroundColor: pageBg,
-      body: SafeArea(
+  void _showVideoInfo() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('ভিডিও তথ্য'),
+          content: const Text(
+            'QuranAPI docs এ সরাসরি ভিডিও endpoint নেই।\n'
+            'অডিও endpoint আছে এবং সেটি অফলাইনে ডাউনলোড করা যাবে।',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('ঠিক আছে'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHeader() {
+    final quickLinks = _quickLinkIds
+        .map(
+          (id) => _chapters.firstWhere(
+            (chapter) => chapter.surahNo == id,
+            orElse: () => QuranChapter(
+              surahNo: id,
+              surahName: 'Surah $id',
+              surahNameArabic: '...',
+              surahNameArabicLong: '...',
+              surahNameTranslation: '',
+              revelationPlace: '',
+              totalAyah: 0,
+            ),
+          ),
+        )
+        .toList(growable: false);
+
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0D8F77), Color(0xFF1AA390), Color(0xFF45BCAA)],
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 96,
-              width: double.infinity,
-              alignment: Alignment.center,
-              decoration: const BoxDecoration(
-                color: surface,
-                border: Border(bottom: BorderSide(color: Color(0xFFDCE5E2))),
-              ),
-              child: const Text(
+            const Center(
+              child: Text(
                 'কুরআন',
                 style: TextStyle(
-                  color: Color(0xFF2E4B44),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  Container(
-                    color: sectionBg,
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _QuranActionButton(
-                              icon: Icons.menu_book_outlined,
-                              label: 'তিলাওয়াত',
-                            ),
-                            _QuranActionButton(
-                              icon: Icons.search,
-                              label: 'অনুসন্ধান',
-                            ),
-                            _QuranActionButton(
-                              icon: Icons.bookmark,
-                              label: 'বুকমার্ক',
-                            ),
-                            _QuranActionButton(
-                              icon: Icons.settings,
-                              label: 'সেটিংস',
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        const Text(
-                          'কুইক লিংক',
-                          style: TextStyle(
-                            color: Color(0xFF294740),
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 44,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemBuilder: (context, index) =>
-                                _QuickLinkChip(label: quickLinks[index]),
-                            separatorBuilder: (_, index) =>
-                                const SizedBox(width: 10),
-                            itemCount: quickLinks.length,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD9E9E4),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.headphones, color: accent, size: 42),
-                              SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'অনুবাদসহ কুরআন শুনুন',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        color: Color(0xFF1D6F60),
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    SizedBox(height: 2),
-                                    Text(
-                                      'mahfil.net',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF4D6661),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(
-                                Icons.chevron_right,
-                                color: accent,
-                                size: 28,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    color: surface,
-                    child: Column(
-                      children: surahItems
-                          .map(
-                            (item) => _SurahListTile(
-                              number: item.number,
-                              nameBn: item.nameBn,
-                              subtitleBn: item.subtitleBn,
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 4),
+            const Center(
+              child: Text(
+                'API • অডিও • অফলাইন',
+                style: TextStyle(
+                  color: Color(0xD9FFFFFF),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _HeaderActionButton(
+                  icon: Icons.menu_book_outlined,
+                  label: 'তিলাওয়াত',
+                  onTap: () {},
+                ),
+                _HeaderActionButton(
+                  icon: Icons.search_rounded,
+                  label: 'অনুসন্ধান',
+                  onTap: () => _searchFocusNode.requestFocus(),
+                ),
+                _HeaderActionButton(
+                  icon: Icons.headphones_rounded,
+                  label: 'অডিও',
+                  onTap: () {
+                    if (_chapters.isEmpty) return;
+                    _showSurahDetail(_chapters.first);
+                  },
+                ),
+                _HeaderActionButton(
+                  icon: Icons.ondemand_video_rounded,
+                  label: 'ভিডিও',
+                  onTap: _showVideoInfo,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: quickLinks.length,
+                separatorBuilder: (_, index) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final chapter = quickLinks[index];
+                  return ActionChip(
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
+                    label: Text(
+                      chapter.surahNameArabic,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                    onPressed: () => _showSurahDetail(chapter),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilters() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            decoration: InputDecoration(
+              hintText: 'সূরা নাম/নম্বর দিয়ে খুঁজুন',
+              prefixIcon: const Icon(Icons.search_rounded),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD8E6E2)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFFD8E6E2)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _FilterChipButton(
+                label: 'সব',
+                selected: _filter == 'all',
+                onTap: () => setState(() => _filter = 'all'),
+              ),
+              const SizedBox(width: 8),
+              _FilterChipButton(
+                label: 'মক্কী',
+                selected: _filter == 'meccan',
+                onTap: () => setState(() => _filter = 'meccan'),
+              ),
+              const SizedBox(width: 8),
+              _FilterChipButton(
+                label: 'মাদানী',
+                selected: _filter == 'medinan',
+                onTap: () => setState(() => _filter = 'medinan'),
+              ),
+              const Spacer(),
+              FilterChip(
+                selected: _showOnlyDownloaded,
+                label: const Text('ডাউনলোডেড'),
+                onSelected: (v) => setState(() => _showOnlyDownloaded = v),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F8F7),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            _buildSearchAndFilters(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(_error!),
+                          const SizedBox(height: 8),
+                          FilledButton(
+                            onPressed: _loadChapters,
+                            child: const Text('আবার চেষ্টা করুন'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      itemCount: _filteredChapters.length,
+                      itemBuilder: (context, index) {
+                        final chapter = _filteredChapters[index];
+                        final downloaded = _downloadedSurahNos.contains(
+                          chapter.surahNo,
+                        );
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _QuranSurahTile(
+                            chapter: chapter,
+                            downloaded: downloaded,
+                            revelationLabel: _revelationLabel(
+                              chapter.revelationPlace,
+                            ),
+                            onTap: () => _showSurahDetail(chapter),
+                            onAudio: () => _showSurahDetail(chapter),
+                          ),
+                        );
+                      },
+                    ),
             ),
             bottomNav(context, 2),
           ],
@@ -183,148 +353,193 @@ class QuranScreen extends StatelessWidget {
   }
 }
 
-class _QuranActionButton extends StatelessWidget {
-  const _QuranActionButton({required this.icon, required this.label});
+class _HeaderActionButton extends StatelessWidget {
+  const _HeaderActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 74,
-      child: Column(
-        children: [
-          Container(
-            width: 74,
-            height: 74,
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCEAE6),
-              borderRadius: BorderRadius.circular(18),
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: SizedBox(
+        width: 74,
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
             ),
-            child: Icon(icon, color: const Color(0xFF0A9C79), size: 36),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFF334E48), fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickLinkChip extends StatelessWidget {
-  const _QuickLinkChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFD7E9E2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Color(0xFF1A8A70),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+            const SizedBox(height: 6),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _SurahListTile extends StatelessWidget {
-  const _SurahListTile({
-    required this.number,
-    required this.nameBn,
-    required this.subtitleBn,
+class _FilterChipButton extends StatelessWidget {
+  const _FilterChipButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
   });
 
-  final int number;
-  final String nameBn;
-  final String subtitleBn;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFDCE5E2))),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF2D9A81), width: 2),
-            ),
-            child: Text(
-              number.toString(),
-              style: const TextStyle(
-                color: Color(0xFF244A43),
-                fontSize: 22,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(100),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF0C9A77) : Colors.white,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(
+            color: selected ? const Color(0xFF0C9A77) : const Color(0xFFD4E3DF),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  nameBn,
-                  style: const TextStyle(
-                    color: Color(0xFF2C3F3B),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitleBn,
-                  style: const TextStyle(
-                    color: Color(0xFF5D6E69),
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : const Color(0xFF30534A),
+            fontWeight: FontWeight.w600,
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.download_for_offline_outlined,
-              color: Color(0xFF90A49E),
-              size: 30,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-class _SurahItem {
-  const _SurahItem({
-    required this.number,
-    required this.nameBn,
-    required this.subtitleBn,
+class _QuranSurahTile extends StatelessWidget {
+  const _QuranSurahTile({
+    required this.chapter,
+    required this.downloaded,
+    required this.revelationLabel,
+    required this.onTap,
+    required this.onAudio,
   });
 
-  final int number;
-  final String nameBn;
-  final String subtitleBn;
+  final QuranChapter chapter;
+  final bool downloaded;
+  final String revelationLabel;
+  final VoidCallback onTap;
+  final VoidCallback onAudio;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFD9E6E2)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0E9A78), Color(0xFF36B49B)],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  chapter.surahNo.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      chapter.surahNameArabic,
+                      style: const TextStyle(
+                        color: Color(0xFF1E3F38),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      chapter.surahName,
+                      style: const TextStyle(
+                        color: Color(0xFF395D54),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$revelationLabel • ${chapter.totalAyah} আয়াত • ${chapter.surahNameTranslation}',
+                      style: const TextStyle(
+                        color: Color(0xFF627772),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton.filledTonal(
+                onPressed: onAudio,
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xFFEAF3F0),
+                  foregroundColor: downloaded
+                      ? const Color(0xFF0C9A77)
+                      : const Color(0xFF3B8375),
+                ),
+                icon: Icon(
+                  downloaded
+                      ? Icons.download_done_rounded
+                      : Icons.headphones_rounded,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
