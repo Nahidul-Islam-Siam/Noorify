@@ -168,7 +168,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
   String get _activeHeaderDate {
     final variants = _headerDateVariants;
-    final index = (_now.second ~/ 2) % variants.length;
+    final index = (_now.millisecondsSinceEpoch ~/ 5000) % variants.length;
     return variants[index];
   }
 
@@ -652,11 +652,30 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                             SizedBox(
                               width: 170,
                               child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 250),
+                                duration: const Duration(milliseconds: 420),
+                                switchInCurve: Curves.easeOutCubic,
+                                switchOutCurve: Curves.easeInCubic,
+                                layoutBuilder:
+                                    (currentChild, previousChildren) => Stack(
+                                      alignment: Alignment.centerRight,
+                                      children: [
+                                        ...previousChildren,
+                                        if (currentChild != null) currentChild,
+                                      ],
+                                    ),
                                 transitionBuilder: (child, animation) {
-                                  return FadeTransition(
-                                    opacity: animation,
-                                    child: child,
+                                  final slide = Tween<Offset>(
+                                    begin: const Offset(0, -0.28),
+                                    end: Offset.zero,
+                                  ).animate(animation);
+                                  return ClipRect(
+                                    child: SlideTransition(
+                                      position: slide,
+                                      child: FadeTransition(
+                                        opacity: animation,
+                                        child: child,
+                                      ),
+                                    ),
                                   );
                                 },
                                 child: Text(
