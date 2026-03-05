@@ -87,6 +87,8 @@ class NoorifyHomeScreen extends StatelessWidget {
 }
 
 class _BrandHeader extends StatelessWidget {
+  static const _logoPath = 'assets/images/logo.png';
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -108,16 +110,22 @@ class _BrandHeader extends StatelessWidget {
           Container(
             width: 62,
             height: 62,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [BrandColors.primaryDark, BrandColors.primary],
               ),
+              border: Border.all(color: const Color(0x33FFFFFF), width: 1),
             ),
-            child: const Icon(
-              Icons.mosque_rounded,
-              size: 32,
-              color: Colors.white,
+            clipBehavior: Clip.antiAlias,
+            child: Image.asset(
+              _logoPath,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.mosque_rounded,
+                size: 32,
+                color: Colors.white,
+              ),
             ),
           ),
           const SizedBox(width: 14),
