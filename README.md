@@ -69,3 +69,7 @@ flutter test
   shells.
 - Package and bundle IDs are still scaffold defaults (`com.example.first_project`)
   and can be renamed later for production release.
+
+## Roadmap
+
+- Future feature roadmap: [docs/FUTURE_UPDATES.md](docs/FUTURE_UPDATES.md)

@@ -7,7 +7,9 @@ import 'package:just_audio/just_audio.dart';
 import '../app/brand_colors.dart';
 import '../models/quran_models.dart';
 import '../services/quran_api_service.dart';
+import '../services/quran_ayah_audio_service.dart';
 import '../services/quran_offline_download_service.dart';
+import '../services/quran_tafsir_service.dart';
 import '../services/quran_timing_service.dart';
 
 class SurahDetailScreen extends StatefulWidget {
@@ -26,7 +28,9 @@ class SurahDetailScreen extends StatefulWidget {
 
 class _SurahDetailScreenState extends State<SurahDetailScreen> {
   final QuranApiService _api = QuranApiService();
+  final QuranAyahAudioService _ayahAudio = QuranAyahAudioService();
   final QuranOfflineDownloadService _offline = QuranOfflineDownloadService();
+  final QuranTafsirService _tafsir = QuranTafsirService();
   final QuranTimingService _timing = QuranTimingService();
   final AudioPlayer _player = AudioPlayer();
 
@@ -55,6 +59,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   Duration _duration = Duration.zero;
   final Map<int, GlobalKey> _ayahItemKeys = {};
   int _lastAutoScrolledAyahIndex = -1;
+  bool _singleAyahMode = false;
+  int? _singleAyahIndex;
+  int? _singleAyahStopMs;
+  bool _isStoppingSingleAyah = false;
 
   @override
   void initState() {
@@ -75,6 +83,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   void _bindAudioStreams() {
     _playerStateSub = _player.playerStateStream.listen((state) {
       if (!mounted) return;
+      if (_singleAyahMode &&
+          state.processingState == ProcessingState.completed &&
+          !state.playing) {
+        setState(() {
+          _singleAyahMode = false;
+          _singleAyahIndex = null;
+          _singleAyahStopMs = null;
+        });
+      }
       setState(() {
         _isPlaying = state.playing;
       });
@@ -82,6 +99,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
     _positionSub = _player.positionStream.listen((position) {
       if (!mounted) return;
+      if (_singleAyahMode &&
+          _singleAyahStopMs != null &&
+          !_isStoppingSingleAyah &&
+          position.inMilliseconds >= _singleAyahStopMs!) {
+        unawaited(_stopAtSingleAyahBoundary());
+      }
       setState(() => _position = position);
     });
 
@@ -89,6 +112,22 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       if (!mounted) return;
       setState(() => _duration = duration ?? Duration.zero);
     });
+  }
+
+  Future<void> _stopAtSingleAyahBoundary() async {
+    if (_isStoppingSingleAyah) return;
+    _isStoppingSingleAyah = true;
+    try {
+      await _player.pause();
+      if (!mounted) return;
+      setState(() {
+        _singleAyahMode = false;
+        _singleAyahIndex = null;
+        _singleAyahStopMs = null;
+      });
+    } finally {
+      _isStoppingSingleAyah = false;
+    }
   }
 
   Future<void> _loadSurahDetail() async {
@@ -225,6 +264,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   int _activeAyahIndex(int totalAyah) {
     if (totalAyah <= 0) return -1;
+    if (_singleAyahMode && _singleAyahIndex != null) {
+      return _singleAyahIndex!.clamp(0, totalAyah - 1);
+    }
     final hasPlaybackStarted = _isPlaying || _position > Duration.zero;
     if (!hasPlaybackStarted) return -1;
 
@@ -383,6 +425,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       _position = Duration.zero;
       _duration = Duration.zero;
       _lastAutoScrolledAyahIndex = -1;
+      _singleAyahMode = false;
+      _singleAyahIndex = null;
+      _singleAyahStopMs = null;
     });
     await _resolveTimingForSelectedReciter();
   }
@@ -421,6 +466,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
     final playbackUrl = _playbackUrlFor(reciter);
     if (_preparedAudioUrl == playbackUrl && _player.audioSource != null) {
+      setState(() {
+        _singleAyahMode = false;
+        _singleAyahIndex = null;
+        _singleAyahStopMs = null;
+      });
       await _player.play();
       return;
     }
@@ -433,6 +483,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       setState(() {
         _preparedAudioUrl = playbackUrl;
         _isPreparingAudio = false;
+        _singleAyahMode = false;
+        _singleAyahIndex = null;
+        _singleAyahStopMs = null;
       });
     } catch (_) {
       if (!mounted) return;
@@ -452,7 +505,97 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       _position = Duration.zero;
       _duration = Duration.zero;
       _lastAutoScrolledAyahIndex = -1;
+      _singleAyahMode = false;
+      _singleAyahIndex = null;
+      _singleAyahStopMs = null;
     });
+  }
+
+  Future<void> _playSingleAyah(int ayahIndex) async {
+    final reciter = _selectedReciter;
+    if (reciter == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Audio not available for this surah.')),
+      );
+      return;
+    }
+
+    if (_singleAyahMode && _singleAyahIndex == ayahIndex && _isPlaying) {
+      await _player.pause();
+      if (!mounted) return;
+      setState(() {
+        _singleAyahMode = false;
+        _singleAyahIndex = null;
+        _singleAyahStopMs = null;
+      });
+      return;
+    }
+
+    final segment = _timingSegmentForAyah(ayahIndex);
+    final preferredRecitationId = _timing.recitationIdForReciterName(
+      reciter.reciter,
+    );
+
+    final playbackUrl = _playbackUrlFor(reciter);
+    setState(() {
+      _showBottomPlayer = true;
+      _isPreparingAudio = true;
+    });
+
+    try {
+      if (segment != null) {
+        if (_preparedAudioUrl != playbackUrl || _player.audioSource == null) {
+          await _prepareAudio(reciter);
+          if (!mounted) return;
+          setState(() => _preparedAudioUrl = playbackUrl);
+        }
+
+        final startMs = math.max(0, segment.fromMs);
+        final stopMs = math.max(startMs + 80, segment.toMs - 10);
+        await _player.seek(Duration(milliseconds: startMs));
+
+        if (!mounted) return;
+        setState(() {
+          _singleAyahMode = true;
+          _singleAyahIndex = ayahIndex;
+          _singleAyahStopMs = stopMs;
+          _lastAutoScrolledAyahIndex = -1;
+          _isPreparingAudio = false;
+        });
+        await _player.play();
+        return;
+      }
+
+      final ayahAudioUrl = await _ayahAudio.fetchAyahAudioUrl(
+        surahNo: widget.chapter.surahNo,
+        ayahNo: ayahIndex + 1,
+        preferredRecitationId: preferredRecitationId,
+      );
+      if (_preparedAudioUrl != ayahAudioUrl || _player.audioSource == null) {
+        await _player.setUrl(ayahAudioUrl);
+      } else {
+        await _player.seek(Duration.zero);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _preparedAudioUrl = ayahAudioUrl;
+        _singleAyahMode = true;
+        _singleAyahIndex = ayahIndex;
+        _singleAyahStopMs = null;
+        _lastAutoScrolledAyahIndex = -1;
+        _isPreparingAudio = false;
+      });
+      await _player.play();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isPreparingAudio = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to play single ayah audio right now.'),
+        ),
+      );
+    }
   }
 
   Future<void> _downloadSelectedAudio() async {
@@ -480,6 +623,170 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         const SnackBar(content: Text('অডিও ডাউনলোড ব্যর্থ হয়েছে')),
       );
     }
+  }
+
+  Future<void> _openAyahTafsirSheet(int ayahIndex) async {
+    final detail = _detail;
+    if (detail == null) return;
+
+    final ayahNo = ayahIndex + 1;
+    final tafsirFuture = _tafsir.fetchBanglaTafsir(
+      surahNo: detail.surahNo,
+      ayahNo: ayahNo,
+    );
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final sheetHeight = MediaQuery.of(sheetContext).size.height * 0.82;
+        return Container(
+          height: sheetHeight,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: FutureBuilder<QuranAyahTafsir>(
+            future: tafsirFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 12),
+                      Text(
+                        'Loading and saving Bangla tafsir...',
+                        style: TextStyle(color: BrandColors.textSecondary),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              if (snapshot.hasError || !snapshot.hasData) {
+                return Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'Ayah ${_toBanglaDigits(ayahNo.toString())} Tafsir',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: BrandColors.textPrimary,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: () => Navigator.of(sheetContext).pop(),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Please check your internet connection and try again. After the first successful load, the tafsir will be saved offline for future access.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: BrandColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final tafsir = snapshot.data!;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Ayah ${_toBanglaDigits(ayahNo.toString())} Tafsir',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: BrandColors.textPrimary,
+                          ),
+                        ),
+                        const Spacer(),
+                        IconButton(
+                          onPressed: () => Navigator.of(sheetContext).pop(),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tafsir.resourceName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: BrandColors.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (tafsir.fromOfflineCache)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: BrandColors.tintBackgroundStrong,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Text(
+                              'Downloaded',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: BrandColors.primaryDark,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+                      children: [
+                        SelectableText(
+                          tafsir.text,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.75,
+                            color: BrandColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildAudioCard(QuranSurahDetail detail) {
@@ -716,77 +1023,115 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     required String bengali,
     required bool highlighted,
     required int highlightedWordIndex,
+    required VoidCallback onTap,
+    required VoidCallback onPlayAyah,
+    required bool isSingleAyahPlaying,
   }) {
-    return AnimatedContainer(
-      key: itemKey,
-      duration: const Duration(milliseconds: 260),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      decoration: BoxDecoration(
-        color: highlighted ? const Color(0xFFEAF7FB) : Colors.white,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: highlighted ? BrandColors.primaryLight : BrandColors.border,
-          width: highlighted ? 1.5 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: AnimatedContainer(
+          key: itemKey,
+          duration: const Duration(milliseconds: 260),
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          decoration: BoxDecoration(
+            color: highlighted ? const Color(0xFFEAF7FB) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: highlighted
+                  ? BrandColors.primaryLight
+                  : BrandColors.border,
+              width: highlighted ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: highlighted
-                      ? BrandColors.tintBackgroundStrong
-                      : BrandColors.tintBackground,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  _toBanglaDigits((index + 1).toString()),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: BrandColors.primaryDark,
+              Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: highlighted
+                          ? BrandColors.tintBackgroundStrong
+                          : BrandColors.tintBackground,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      _toBanglaDigits((index + 1).toString()),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: BrandColors.primaryDark,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    highlighted ? 'আরবি + বাংলা • চলছে' : 'আরবি + বাংলা',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: highlighted
+                          ? BrandColors.primaryDark
+                          : BrandColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: isSingleAyahPlaying
+                        ? 'Playing this ayah'
+                        : 'Play this ayah',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onPlayAyah,
+                    icon: Icon(
+                      isSingleAyahPlaying
+                          ? Icons.pause_circle_filled_rounded
+                          : Icons.play_circle_fill_rounded,
+                      size: 24,
+                      color: BrandColors.primaryDark,
+                    ),
+                  ),
+                ],
+              ),
+              if (arabic.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildArabicAyahText(
+                    arabic: arabic,
+                    highlightedWordIndex: highlighted
+                        ? highlightedWordIndex
+                        : -1,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                highlighted ? 'আরবি + বাংলা • চলছে' : 'আরবি + বাংলা',
+              ],
+              if (bengali.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  bengali,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    height: 1.6,
+                    color: BrandColors.textPrimary,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              const Text(
+                'Tap to view Bangla tafsir (auto-saved offline)',
                 style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: highlighted
-                      ? BrandColors.primaryDark
-                      : BrandColors.textSecondary,
                   fontSize: 12,
+                  color: BrandColors.textMuted,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          if (arabic.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: _buildArabicAyahText(
-                arabic: arabic,
-                highlightedWordIndex: highlighted ? highlightedWordIndex : -1,
-              ),
-            ),
-          ],
-          if (bengali.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              bengali,
-              style: const TextStyle(
-                fontSize: 15,
-                height: 1.6,
-                color: BrandColors.textPrimary,
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -907,6 +1252,12 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                               bengali: bengali,
                               highlighted: index == activeAyahIndex,
                               highlightedWordIndex: wordHighlightIndex,
+                              onTap: () => _openAyahTafsirSheet(index),
+                              onPlayAyah: () => _playSingleAyah(index),
+                              isSingleAyahPlaying:
+                                  _singleAyahMode &&
+                                  _singleAyahIndex == index &&
+                                  _isPlaying,
                             );
                           },
                         ),
