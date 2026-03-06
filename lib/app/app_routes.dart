@@ -4,6 +4,7 @@ import 'route_names.dart';
 import '../screens/daily_activity_screen.dart';
 import '../screens/edit_profile_screen.dart';
 import '../screens/about_screen.dart';
+import '../screens/asma_screen.dart';
 import '../screens/profile_preferences_screen.dart';
 import '../screens/privacy_policy_screen.dart';
 import '../screens/quran_screen.dart';
@@ -32,6 +33,8 @@ class AppRoutes {
         return _page(const EditProfileScreen(), settings);
       case RouteNames.activity:
         return _page(const DailyActivityScreen(), settings);
+      case RouteNames.asma:
+        return _page(const AsmaScreen(), settings);
       case RouteNames.quran:
         return _page(const QuranScreen(), settings);
       case RouteNames.prayerCompass:

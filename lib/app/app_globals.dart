@@ -4,7 +4,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/timezone.dart' as tz;
 
 final FlutterLocalNotificationsPlugin localNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -63,9 +65,8 @@ final ValueNotifier<String> profileNameNotifier = ValueNotifier<String>(
 final ValueNotifier<String> profileLocationNotifier = ValueNotifier<String>(
   'Sylhet, Bangladesh',
 );
-final ValueNotifier<String?> profilePhotoBase64Notifier = ValueNotifier<String?>(
-  null,
-);
+final ValueNotifier<String?> profilePhotoBase64Notifier =
+    ValueNotifier<String?>(null);
 final ValueNotifier<bool> showLatinLettersNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> showTranslationNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<String> translationLanguageNotifier = ValueNotifier<String>(
@@ -84,6 +85,11 @@ final ValueNotifier<String> adzanVoiceNotifier = ValueNotifier<String>(
 final ValueNotifier<String> imsakVoiceNotifier = ValueNotifier<String>(
   'Default',
 );
+final ValueNotifier<bool> hifzModeEnabledNotifier = ValueNotifier<bool>(false);
+final ValueNotifier<bool> hifzHideBanglaMeaningNotifier = ValueNotifier<bool>(
+  false,
+);
+final ValueNotifier<int> hifzRepeatCountNotifier = ValueNotifier<int>(3);
 
 const _alertToneCacheKey = 'alert_tone_preference_v1';
 const _appPreferencesCacheKey = 'app_preferences_v1';
@@ -147,6 +153,7 @@ bool alertTonePlaySound(AppAlertTone tone) {
 
 Future<void> initializeNotifications() async {
   tz_data.initializeTimeZones();
+  await _configureLocalTimeZone();
 
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const iosSettings = DarwinInitializationSettings();
@@ -157,6 +164,17 @@ Future<void> initializeNotifications() async {
 
   await loadAlertTonePreference();
   await ensureNotificationPermissions();
+  await ensureExactAlarmPermissions();
+}
+
+Future<void> _configureLocalTimeZone() async {
+  try {
+    final timezoneName = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(timezoneName));
+  } catch (_) {
+    // Keep app usable even if timezone lookup fails on a specific device.
+    tz.setLocalLocation(tz.getLocation('UTC'));
+  }
 }
 
 Future<void> loadAppPreferences() async {
@@ -221,7 +239,9 @@ Future<void> loadAppPreferences() async {
     }
 
     final profilePhoto = (json['profilePhoto'] ?? '').toString().trim();
-    profilePhotoBase64Notifier.value = profilePhoto.isEmpty ? null : profilePhoto;
+    profilePhotoBase64Notifier.value = profilePhoto.isEmpty
+        ? null
+        : profilePhoto;
 
     final showLatin = json['showLatinLetters'];
     if (showLatin is bool) {
@@ -264,6 +284,21 @@ Future<void> loadAppPreferences() async {
     if (imsakVoice.isNotEmpty) {
       imsakVoiceNotifier.value = imsakVoice;
     }
+
+    final hifzModeEnabled = json['hifzModeEnabled'];
+    if (hifzModeEnabled is bool) {
+      hifzModeEnabledNotifier.value = hifzModeEnabled;
+    }
+
+    final hifzHideBanglaMeaning = json['hifzHideBanglaMeaning'];
+    if (hifzHideBanglaMeaning is bool) {
+      hifzHideBanglaMeaningNotifier.value = hifzHideBanglaMeaning;
+    }
+
+    final hifzRepeatCount = (json['hifzRepeatCount'] as num?)?.toInt();
+    if (hifzRepeatCount != null && [1, 3, 5, 10].contains(hifzRepeatCount)) {
+      hifzRepeatCountNotifier.value = hifzRepeatCount;
+    }
   } catch (_) {
     // Ignore corrupted local preferences and keep defaults.
   }
@@ -289,6 +324,9 @@ Future<void> saveAppPreferences() async {
     'reciter': reciterNotifier.value,
     'adzanVoice': adzanVoiceNotifier.value,
     'imsakVoice': imsakVoiceNotifier.value,
+    'hifzModeEnabled': hifzModeEnabledNotifier.value,
+    'hifzHideBanglaMeaning': hifzHideBanglaMeaningNotifier.value,
+    'hifzRepeatCount': hifzRepeatCountNotifier.value,
   });
 
   await _settingsCache.putFile(
@@ -368,4 +406,18 @@ Future<bool> ensureNotificationPermissions() async {
           ?.requestPermissions(alert: true, badge: true, sound: true) ??
       true;
   return androidGranted && iosGranted;
+}
+
+Future<bool> ensureExactAlarmPermissions() async {
+  final android = localNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
+  if (android == null) return true;
+
+  final canScheduleExact = await android.canScheduleExactNotifications();
+  if (canScheduleExact == true) return true;
+
+  final requested = await android.requestExactAlarmsPermission();
+  return requested ?? false;
 }

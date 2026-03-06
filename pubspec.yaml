@@ -41,6 +41,7 @@ dependencies:
   adhan_dart: ^1.2.0
   flutter_local_notifications: ^19.4.2
   timezone: ^0.10.1
+  flutter_timezone: ^4.1.1
   hijri: ^3.0.0
   ponjika: ^1.1.0
   dio: ^5.9.2
@@ -74,6 +75,7 @@ flutter:
   assets:
     - assets/images/
     - assets/kakbah.png
+    - assets/data/
 
 flutter_launcher_icons:
   android: true

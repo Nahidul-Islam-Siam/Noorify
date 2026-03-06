@@ -85,7 +85,7 @@ Implementation will happen feature-by-feature in this exact order:
 - Highlight and short personal note
 - Resume from bookmark
 
-4. Hifz mode (local)
+4. Hifz mode (local) [In Progress]
 - Repeat ayah N times
 - A-B repeat
 - Optional hide Bangla meaning mode
@@ -137,9 +137,13 @@ Completed (out of order by priority request):
   - Local note per bookmarked ayah
   - Surah-level bookmark list with jump-to-ayah
   - Quran home quick action for bookmark resume
+- Hifz mode (local) - phase 1
+  - Toggle-based Hifz mode (off by default)
+  - Single-ayah auto repeat (1x/3x/5x/10x)
+  - Optional "Hide Bangla meaning" practice view
 
 Next up:
-- Hifz Mode (local)
+- Hifz Mode phase 2 (A-B repeat, ayah range, progress tracking)
 
 ## 1) Hifz Mode (Memorization Mode) - Next Major Feature
 

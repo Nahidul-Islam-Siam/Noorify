@@ -10,6 +10,7 @@ and offline-friendly behavior.
 - Sehri, Iftar, and prayer alerts using local notifications.
 - Quran browsing and Surah detail views.
 - Ayah-level bookmarks and short personal notes (stored locally).
+- Hifz mode toggle with single-ayah repeat and optional Arabic-only practice.
 - Offline Quran text cache and offline audio download support.
 - Qibla compass with heading and bearing guidance.
 - Profile/preferences for language, location mode, and alert settings.

@@ -7,9 +7,9 @@ Widget bottomNav(BuildContext context, int active) {
   const activeColor = BrandColors.primary;
   const inactiveColor = Color(0xFF7E93A0);
 
-  final items = <({String label, IconData icon, String? routeName})>[
+  final items = <({String label, IconData icon, String routeName})>[
     (label: 'Home', icon: Icons.home_filled, routeName: RouteNames.activity),
-    (label: 'Discover', icon: Icons.explore_outlined, routeName: null),
+    (label: 'Discover', icon: Icons.explore_outlined, routeName: RouteNames.asma),
     (
       label: 'Quran',
       icon: Icons.menu_book_outlined,
@@ -29,13 +29,6 @@ Widget bottomNav(BuildContext context, int active) {
 
   void onTapItem(int index) {
     final routeName = items[index].routeName;
-    if (routeName == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('This page is coming soon')));
-      return;
-    }
-
     if (index == active) return;
     Navigator.of(context).pushReplacementNamed(routeName);
   }

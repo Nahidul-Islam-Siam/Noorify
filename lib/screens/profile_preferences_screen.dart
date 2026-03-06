@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 
 import '../app/app_globals.dart';
 import '../app/route_names.dart';
@@ -63,6 +64,77 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     await saveAppPreferences();
   }
 
+  Future<void> _setUseDeviceLocation(bool value) async {
+    try {
+      if (!value) {
+        useDeviceLocationNotifier.value = false;
+        await saveAppPreferences();
+        return;
+      }
+
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        await Geolocator.openLocationSettings();
+        useDeviceLocationNotifier.value = false;
+        await saveAppPreferences();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enable phone location service first'),
+          ),
+        );
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+        useDeviceLocationNotifier.value = false;
+        await saveAppPreferences();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Location permission is permanently denied. Enable it in app settings.',
+            ),
+          ),
+        );
+        return;
+      }
+      if (permission == LocationPermission.denied) {
+        useDeviceLocationNotifier.value = false;
+        await saveAppPreferences();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permission is needed for accurate timings'),
+          ),
+        );
+        return;
+      }
+
+      useDeviceLocationNotifier.value = value;
+      await saveAppPreferences();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Device location enabled')));
+    } catch (e) {
+      useDeviceLocationNotifier.value = false;
+      await saveAppPreferences();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to enable location on this device right now'),
+        ),
+      );
+      debugPrint('Use device location toggle failed: $e');
+    }
+  }
+
   Future<void> _setShowLatinLetters(bool value) async {
     showLatinLettersNotifier.value = value;
     await saveAppPreferences();
@@ -85,6 +157,33 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
 
   Future<void> _setImsakNotification(bool value) async {
     sehriAlertEnabledNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setHifzMode(bool value) async {
+    hifzModeEnabledNotifier.value = value;
+    if (!value) {
+      hifzHideBanglaMeaningNotifier.value = false;
+    }
+    await saveAppPreferences();
+  }
+
+  Future<void> _setHifzHideBanglaMeaning(bool value) async {
+    hifzHideBanglaMeaningNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _selectHifzRepeatCount() async {
+    final current = '${hifzRepeatCountNotifier.value}x';
+    final selected = await _pickOption(
+      title: 'Hifz Repeat Count',
+      options: const ['1x', '3x', '5x', '10x'],
+      current: current,
+    );
+    if (selected == null) return;
+    final parsed = int.tryParse(selected.replaceAll('x', ''));
+    if (parsed == null || parsed == hifzRepeatCountNotifier.value) return;
+    hifzRepeatCountNotifier.value = parsed;
     await saveAppPreferences();
   }
 
@@ -112,7 +211,9 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                 final selected = option == current;
                 return ListTile(
                   title: Text(option),
-                  trailing: selected ? const Icon(Icons.check, color: _teal) : null,
+                  trailing: selected
+                      ? const Icon(Icons.check, color: _teal)
+                      : null,
                   onTap: () => Navigator.of(sheetContext).pop(option),
                 );
               }),
@@ -144,7 +245,9 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                 final selected = size == current;
                 return ListTile(
                   title: Text(appFontSizeLabel(size)),
-                  trailing: selected ? const Icon(Icons.check, color: _teal) : null,
+                  trailing: selected
+                      ? const Icon(Icons.check, color: _teal)
+                      : null,
                   onTap: () => Navigator.of(sheetContext).pop(size),
                 );
               }),
@@ -227,7 +330,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
           ? null
           : Text(
               subtitle,
-              style: const TextStyle(fontSize: 10, color: _mutedText, height: 1.2),
+              style: const TextStyle(
+                fontSize: 10,
+                color: _mutedText,
+                height: 1.2,
+              ),
             ),
       trailing:
           trailing ??
@@ -399,6 +506,20 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             );
                           },
                         ),
+                        const Divider(height: 1, color: _line),
+                        ValueListenableBuilder<bool>(
+                          valueListenable: useDeviceLocationNotifier,
+                          builder: (context, enabled, _) {
+                            return _switchRow(
+                              icon: Icons.my_location_rounded,
+                              title: 'Use Device Location',
+                              subtitle:
+                                  'Accurate prayer/sehri/iftar by your area',
+                              value: enabled,
+                              onChanged: _setUseDeviceLocation,
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -416,7 +537,8 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             return _switchRow(
                               icon: Icons.short_text_rounded,
                               title: 'Show Latin Letters',
-                              subtitle: 'Latin lyrics while navigating Al Quran',
+                              subtitle:
+                                  'Latin lyrics while navigating Al Quran',
                               value: enabled,
                               onChanged: _setShowLatinLetters,
                             );
@@ -480,7 +602,8 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                   ],
                                   current: translator,
                                 );
-                                if (selected == null || selected == translator) {
+                                if (selected == null ||
+                                    selected == translator) {
                                   return;
                                 }
                                 translatorNotifier.value = selected;
@@ -577,6 +700,57 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       ],
                     ),
                   ),
+                  _sectionLabel('Quran Learning'),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: ValueListenableBuilder<bool>(
+                      valueListenable: hifzModeEnabledNotifier,
+                      builder: (context, enabled, _) {
+                        return Column(
+                          children: [
+                            _switchRow(
+                              icon: Icons.self_improvement_outlined,
+                              title: 'Enable Hifz Mode',
+                              subtitle: 'Use repeat mode for ayah memorization',
+                              value: enabled,
+                              onChanged: _setHifzMode,
+                            ),
+                            if (enabled) ...[
+                              const Divider(height: 1, color: _line),
+                              ValueListenableBuilder<int>(
+                                valueListenable: hifzRepeatCountNotifier,
+                                builder: (context, repeatCount, _) {
+                                  return _rowTile(
+                                    icon: Icons.repeat_rounded,
+                                    title: 'Hifz Repeat Count',
+                                    subtitle: '${repeatCount}x per ayah',
+                                    onTap: _selectHifzRepeatCount,
+                                  );
+                                },
+                              ),
+                              const Divider(height: 1, color: _line),
+                              ValueListenableBuilder<bool>(
+                                valueListenable: hifzHideBanglaMeaningNotifier,
+                                builder: (context, hideBangla, _) {
+                                  return _switchRow(
+                                    icon: Icons.visibility_off_outlined,
+                                    title: 'Hide Bangla in Hifz',
+                                    subtitle:
+                                        'Show Arabic only while practicing',
+                                    value: hideBangla,
+                                    onChanged: _setHifzHideBanglaMeaning,
+                                  );
+                                },
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.center,
@@ -596,7 +770,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       icon: const Icon(Icons.logout_rounded, size: 14),
                       label: const Text(
                         'Log Out',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),

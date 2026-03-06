@@ -1,16 +1,14 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:ponjika/ponjika.dart';
+import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../app/app_globals.dart';
@@ -35,7 +33,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   static const _headerHeight = 330.0;
   static const _apiMethod = 1; // University of Islamic Sciences, Karachi
   static const _apiSchool = 1; // Hanafi
-  static const _locationPrimerSeenCacheKey = 'location_primer_seen_v1';
 
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -43,17 +40,12 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   double? _longitude;
   bool _isFetchingPrayerSchedule = false;
   bool _ignoreNextLocationToggleChange = false;
-  bool _isShowingLocationPrimer = false;
   _DailyPrayerSchedule? _todaySchedule;
   _DailyPrayerSchedule? _tomorrowSchedule;
   DateTime? _lastPrayerCalcDate;
-  DateTime? _todayFajr;
-  DateTime? _todayIftar;
   DateTime? _nextSehriAt;
   DateTime? _nextIftarAt;
-  DateTime? _lastShownSehriModalAt;
-  DateTime? _lastShownIftarModalAt;
-  bool _isAlertDialogOpen = false;
+  bool _isRefreshingLocation = false;
   String _locationLabel = 'Detecting location...';
   String _countdownLabel = 'Calculating prayer...';
   String _activePrayer = 'Dzuhr';
@@ -80,7 +72,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   String? _selectedPrayer;
   final QuranLastReadService _lastReadService = QuranLastReadService();
   final QuranApiService _quranApiService = QuranApiService();
-  final BaseCacheManager _cacheManager = DefaultCacheManager();
   final Dio _prayerApi = Dio(
     BaseOptions(
       baseUrl: 'https://api.aladhan.com',
@@ -117,7 +108,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       if (!mounted) return;
       _safeSetState(() => _now = DateTime.now());
       _updateCountdown();
-      _maybeShowMealAlertsModal();
       if (_lastPrayerCalcDate == null ||
           _lastPrayerCalcDate!.day != _now.day ||
           _lastPrayerCalcDate!.month != _now.month ||
@@ -162,83 +152,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     if (useDeviceLocationNotifier.value == value) return;
     _ignoreNextLocationToggleChange = true;
     useDeviceLocationNotifier.value = value;
-  }
-
-  String _locationPrimerTitle() => _isBangla
-      ? '\u0985\u09a7\u09bf\u0995 \u09a8\u09bf\u09b0\u09cd\u09ad\u09c1\u09b2 \u09b8\u09ae\u09df\u09c7\u09b0 \u099c\u09a8\u09cd\u09af \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u0987'
-      : 'Enable location for accurate prayer times';
-
-  String _locationPrimerBody() => _isBangla
-      ? '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09b2\u09c7 \u0986\u09aa\u09a8\u09be\u09b0 \u098f\u09b0\u09bf\u09df\u09be \u09ad\u09bf\u09a4\u09cd\u09a4\u09bf\u0995 \u09a8\u09be\u09ae\u09be\u099c, \u09b8\u09c7\u09b9\u09b0\u09bf \u0993 \u0987\u09ab\u09a4\u09be\u09b0\u09c7\u09b0 \u09b8\u09ae\u09df \u09a6\u09c7\u0996\u09be\u09a8\u09cb \u09b9\u09ac\u09c7\u0964'
-      : 'Turn on location to get prayer, Sehri, and Iftar times for your current area.';
-
-  String _locationPrimerSkipLabel() => _isBangla
-      ? '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099b\u09be\u09dc\u09be \u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8'
-      : 'Continue without location';
-
-  String _locationPrimerEnableLabel() => _isBangla
-      ? '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09c1\u09a8'
-      : 'Enable location';
-
-  Future<bool> _isLocationPrimerSeen() async {
-    final cached = await _cacheManager.getFileFromCache(
-      _locationPrimerSeenCacheKey,
-    );
-    if (cached == null || !await cached.file.exists()) return false;
-
-    try {
-      final text = await cached.file.readAsString();
-      final json = jsonDecode(text);
-      return json is Map && json['seen'] == true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> _markLocationPrimerSeen() async {
-    final payload = jsonEncode({'seen': true});
-    await _cacheManager.putFile(
-      _locationPrimerSeenCacheKey,
-      Uint8List.fromList(utf8.encode(payload)),
-      key: _locationPrimerSeenCacheKey,
-      fileExtension: 'json',
-    );
-  }
-
-  Future<bool> _showLocationPrimerIfNeeded() async {
-    final alreadySeen = await _isLocationPrimerSeen();
-    if (alreadySeen) return true;
-    if (!mounted || _isShowingLocationPrimer) return false;
-
-    _isShowingLocationPrimer = true;
-    final action = await showDialog<_LocationPrimerAction>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(_locationPrimerTitle()),
-          content: Text(_locationPrimerBody()),
-          actions: [
-            TextButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(_LocationPrimerAction.skip),
-              child: Text(_locationPrimerSkipLabel()),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(_LocationPrimerAction.enable),
-              child: Text(_locationPrimerEnableLabel()),
-            ),
-          ],
-        );
-      },
-    );
-    _isShowingLocationPrimer = false;
-    await _markLocationPrimerSeen();
-
-    if (action == _LocationPrimerAction.enable) return true;
-    _setUseDeviceLocationSilently(false);
-    return false;
   }
 
   Future<void> _onSehriAlertToggleChanged() async {
@@ -431,12 +344,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       ? '\u0987\u09ab\u09a4\u09be\u09b0\u09c7\u09b0 \u09b8\u09ae\u09df \u09b9\u09df\u09c7\u099b\u09c7\u0964'
       : 'It is time for Iftar.';
 
-  String _localizedStopAlerts() => _isBangla
-      ? '\u098f\u09b2\u09be\u09b0\u09cd\u099f \u09ac\u09a8\u09cd\u09a7'
-      : 'Stop Alerts';
-
-  String _localizedClose() => _isBangla ? '\u09ac\u09a8\u09cd\u09a7' : 'Close';
-
   String _localizedPrayerTime(String value) =>
       _isBangla ? _toBanglaDigits(value) : value;
 
@@ -569,6 +476,7 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     required String body,
     required String payload,
   }) async {
+    _ensureTimezoneInitializedForScheduling();
     var scheduled = tz.TZDateTime.from(at, tz.local);
     final nowTz = tz.TZDateTime.now(tz.local);
     if (scheduled.isBefore(nowTz)) {
@@ -641,6 +549,20 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
         }
       } else {
         rethrow;
+      }
+    }
+  }
+
+  void _ensureTimezoneInitializedForScheduling() {
+    try {
+      // Accessing tz.local throws if local location was never configured.
+      tz.local;
+    } catch (_) {
+      try {
+        tz_data.initializeTimeZones();
+        tz.setLocalLocation(tz.getLocation('UTC'));
+      } catch (_) {
+        // Keep scheduling flow from crashing even in test environments.
       }
     }
   }
@@ -769,81 +691,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
     }
   }
 
-  bool _isNowWithinAlertWindow(DateTime eventTime) {
-    final end = eventTime.add(const Duration(minutes: 1));
-    return !_now.isBefore(eventTime) && !_now.isAfter(end);
-  }
-
-  void _showMealAlertModal({
-    required String title,
-    required String body,
-    required Future<void> Function() onStopPressed,
-  }) {
-    if (!mounted || _isAlertDialogOpen) return;
-    _isAlertDialogOpen = true;
-
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(title),
-          content: Text(body),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await onStopPressed();
-                if (context.mounted) Navigator.of(context).pop();
-              },
-              child: Text(_localizedStopAlerts()),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(_localizedClose()),
-            ),
-          ],
-        );
-      },
-    ).whenComplete(() {
-      _isAlertDialogOpen = false;
-    });
-  }
-
-  void _maybeShowMealAlertsModal() {
-    if (!mounted || _isAlertDialogOpen) return;
-
-    if (sehriAlertEnabledNotifier.value &&
-        _todayFajr != null &&
-        _lastShownSehriModalAt != _todayFajr &&
-        _isNowWithinAlertWindow(_todayFajr!)) {
-      _lastShownSehriModalAt = _todayFajr;
-      _showMealAlertModal(
-        title: _localizedSehriAlertTitle(),
-        body: _localizedSehriAlertBody(),
-        onStopPressed: () async {
-          sehriAlertEnabledNotifier.value = false;
-          await _cancelSehriNotification();
-        },
-      );
-      return;
-    }
-
-    if (iftarAlertEnabledNotifier.value &&
-        _todayIftar != null &&
-        _lastShownIftarModalAt != _todayIftar &&
-        _isNowWithinAlertWindow(_todayIftar!)) {
-      _lastShownIftarModalAt = _todayIftar;
-      _showMealAlertModal(
-        title: _localizedIftarAlertTitle(),
-        body: _localizedIftarAlertBody(),
-        onStopPressed: () async {
-          iftarAlertEnabledNotifier.value = false;
-          await _cancelIftarNotification();
-        },
-      );
-    }
-  }
-
   String get _displayPrayer => _selectedPrayer ?? _activePrayer;
   bool get _isShowingActivePrayer => _displayPrayer == _activePrayer;
 
@@ -864,13 +711,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
   Future<void> _loadPrayerData() async {
     if (!useDeviceLocationNotifier.value) {
-      _setBaitulMukarramLocation();
-      await _refreshPrayerScheduleFromSource(forceRefresh: true);
-      return;
-    }
-
-    final allowDeviceLocation = await _showLocationPrimerIfNeeded();
-    if (!allowDeviceLocation) {
       _setBaitulMukarramLocation();
       await _refreshPrayerScheduleFromSource(forceRefresh: true);
       return;
@@ -897,13 +737,33 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition();
+      Position position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
+        );
+      } catch (_) {
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown == null) rethrow;
+        position = lastKnown;
+      }
       _latitude = position.latitude;
       _longitude = position.longitude;
       await _resolveLocationLabel(position.latitude, position.longitude);
-    } catch (_) {
-      _setUseDeviceLocationSilently(false);
+    } catch (e) {
       _setBaitulMukarramLocation();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not read current location. Using fallback temporarily.',
+            ),
+          ),
+        );
+      }
+      debugPrint('Device location fetch failed: $e');
     }
 
     await _refreshPrayerScheduleFromSource(forceRefresh: true);
@@ -930,6 +790,22 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
       _safeSetState(() => _locationLabel = label);
     } catch (_) {
       _safeSetState(() => _locationLabel = 'Current location');
+    }
+  }
+
+  Future<void> _refreshLocationFromHeader() async {
+    if (_isRefreshingLocation) return;
+    _isRefreshingLocation = true;
+    try {
+      _setUseDeviceLocationSilently(true);
+      await _loadPrayerData();
+      await saveAppPreferences();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Prayer times updated for $_locationLabel')),
+      );
+    } finally {
+      _isRefreshingLocation = false;
     }
   }
 
@@ -1077,9 +953,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
   void _recalculatePrayerTimesForToday() {
     if (!mounted) return;
     final today = DateTime(_now.year, _now.month, _now.day);
-    final isNewDay =
-        _lastPrayerCalcDate == null ||
-        !_isSameDate(_lastPrayerCalcDate!, today);
 
     final scheduleToday = _todaySchedule;
     final scheduleTomorrow = _tomorrowSchedule;
@@ -1115,12 +988,6 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
 
     _safeSetState(() {
       _lastPrayerCalcDate = today;
-      _todayFajr = scheduleToday.imsak;
-      _todayIftar = maghrib;
-      if (isNewDay) {
-        _lastShownSehriModalAt = null;
-        _lastShownIftarModalAt = null;
-      }
       _prayerTimes = {
         'Fajr': _formatPrayerTime(fajr),
         'Dzuhr': _formatPrayerTime(dzuhr),
@@ -1516,41 +1383,45 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                               ),
                             ),
                             const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0x33FFFFFF),
-                                borderRadius: BorderRadius.circular(1000),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.location_on,
-                                    color: Colors.white,
-                                    size: 14,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  SizedBox(
-                                    width: 132,
-                                    child: Text(
-                                      _locationLabel,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
+                            InkWell(
+                              onTap: _refreshLocationFromHeader,
+                              borderRadius: BorderRadius.circular(1000),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0x33FFFFFF),
+                                  borderRadius: BorderRadius.circular(1000),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    SizedBox(
+                                      width: 132,
+                                      child: Text(
+                                        _locationLabel,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.white,
-                                    size: 14,
-                                  ),
-                                ],
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.refresh_rounded,
+                                      color: Colors.white,
+                                      size: 14,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -1803,6 +1674,62 @@ class _DailyActivityScreenState extends State<DailyActivityScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () => Navigator.of(context).pushNamed(RouteNames.asma),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: const Color(0xFFE1E8EC)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Read',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Color(0xFF1F252D),
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    '99 Names (Asma Ul Husna)',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1D98A9),
+                                borderRadius: BorderRadius.circular(1000),
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: const Icon(
+                                Icons.auto_stories_rounded,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -1925,8 +1852,6 @@ class _ActivityItem {
   int done;
   final int total;
 }
-
-enum _LocationPrimerAction { enable, skip }
 
 class _DailyPrayerSchedule {
   const _DailyPrayerSchedule({

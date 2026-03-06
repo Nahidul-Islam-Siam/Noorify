@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
+import '../app/app_globals.dart';
 import '../app/brand_colors.dart';
 import '../models/quran_models.dart';
 import '../services/quran_api_service.dart';
@@ -65,10 +66,28 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   int _lastAutoScrolledAyahIndex = -1;
   bool _singleAyahMode = false;
   int? _singleAyahIndex;
+  int? _singleAyahStartMs;
   int? _singleAyahStopMs;
   bool _isStoppingSingleAyah = false;
+  int _hifzRepeatsLeft = 0;
   bool _didJumpToInitialAyah = false;
   Map<int, QuranAyahBookmark> _bookmarksByAyahNo = const {};
+
+  bool get _hifzModeEnabled => hifzModeEnabledNotifier.value;
+  bool get _hifzHideBanglaMeaning => hifzHideBanglaMeaningNotifier.value;
+  int get _hifzRepeatCount => hifzRepeatCountNotifier.value;
+
+  void _resetSingleAyahPlaybackState() {
+    _singleAyahMode = false;
+    _singleAyahIndex = null;
+    _singleAyahStartMs = null;
+    _singleAyahStopMs = null;
+    _hifzRepeatsLeft = 0;
+  }
+
+  int _targetRepeatCountForMode() {
+    return _hifzModeEnabled ? _hifzRepeatCount : 1;
+  }
 
   @override
   void initState() {
@@ -93,11 +112,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       if (_singleAyahMode &&
           state.processingState == ProcessingState.completed &&
           !state.playing) {
-        setState(() {
-          _singleAyahMode = false;
-          _singleAyahIndex = null;
-          _singleAyahStopMs = null;
-        });
+        unawaited(_handleCompletedSingleAyahTrack());
       }
       setState(() {
         _isPlaying = state.playing;
@@ -121,17 +136,46 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     });
   }
 
+  Future<void> _handleCompletedSingleAyahTrack() async {
+    if (!_singleAyahMode) return;
+    if (_hifzModeEnabled && _hifzRepeatsLeft > 1) {
+      final nextRepeatsLeft = _hifzRepeatsLeft - 1;
+      await _player.seek(Duration.zero);
+      if (!mounted) return;
+      setState(() {
+        _hifzRepeatsLeft = nextRepeatsLeft;
+        _lastAutoScrolledAyahIndex = -1;
+      });
+      await _player.play();
+      return;
+    }
+
+    if (!mounted) return;
+    setState(_resetSingleAyahPlaybackState);
+  }
+
   Future<void> _stopAtSingleAyahBoundary() async {
     if (_isStoppingSingleAyah) return;
     _isStoppingSingleAyah = true;
     try {
+      if (_hifzModeEnabled &&
+          _singleAyahMode &&
+          _singleAyahStartMs != null &&
+          _hifzRepeatsLeft > 1) {
+        final nextRepeatsLeft = _hifzRepeatsLeft - 1;
+        await _player.seek(Duration(milliseconds: _singleAyahStartMs!));
+        if (!mounted) return;
+        setState(() {
+          _hifzRepeatsLeft = nextRepeatsLeft;
+          _lastAutoScrolledAyahIndex = -1;
+        });
+        await _player.play();
+        return;
+      }
+
       await _player.pause();
       if (!mounted) return;
-      setState(() {
-        _singleAyahMode = false;
-        _singleAyahIndex = null;
-        _singleAyahStopMs = null;
-      });
+      setState(_resetSingleAyahPlaybackState);
     } finally {
       _isStoppingSingleAyah = false;
     }
@@ -658,9 +702,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       _position = Duration.zero;
       _duration = Duration.zero;
       _lastAutoScrolledAyahIndex = -1;
-      _singleAyahMode = false;
-      _singleAyahIndex = null;
-      _singleAyahStopMs = null;
+      _resetSingleAyahPlaybackState();
     });
     await _resolveTimingForSelectedReciter();
   }
@@ -699,11 +741,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
     final playbackUrl = _playbackUrlFor(reciter);
     if (_preparedAudioUrl == playbackUrl && _player.audioSource != null) {
-      setState(() {
-        _singleAyahMode = false;
-        _singleAyahIndex = null;
-        _singleAyahStopMs = null;
-      });
+      setState(_resetSingleAyahPlaybackState);
       await _player.play();
       return;
     }
@@ -716,9 +754,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       setState(() {
         _preparedAudioUrl = playbackUrl;
         _isPreparingAudio = false;
-        _singleAyahMode = false;
-        _singleAyahIndex = null;
-        _singleAyahStopMs = null;
+        _resetSingleAyahPlaybackState();
       });
     } catch (_) {
       if (!mounted) return;
@@ -738,9 +774,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       _position = Duration.zero;
       _duration = Duration.zero;
       _lastAutoScrolledAyahIndex = -1;
-      _singleAyahMode = false;
-      _singleAyahIndex = null;
-      _singleAyahStopMs = null;
+      _resetSingleAyahPlaybackState();
     });
   }
 
@@ -756,11 +790,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     if (_singleAyahMode && _singleAyahIndex == ayahIndex && _isPlaying) {
       await _player.pause();
       if (!mounted) return;
-      setState(() {
-        _singleAyahMode = false;
-        _singleAyahIndex = null;
-        _singleAyahStopMs = null;
-      });
+      setState(_resetSingleAyahPlaybackState);
       return;
     }
 
@@ -791,7 +821,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         setState(() {
           _singleAyahMode = true;
           _singleAyahIndex = ayahIndex;
+          _singleAyahStartMs = startMs;
           _singleAyahStopMs = stopMs;
+          _hifzRepeatsLeft = _targetRepeatCountForMode();
           _lastAutoScrolledAyahIndex = -1;
           _isPreparingAudio = false;
         });
@@ -815,7 +847,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         _preparedAudioUrl = ayahAudioUrl;
         _singleAyahMode = true;
         _singleAyahIndex = ayahIndex;
+        _singleAyahStartMs = 0;
         _singleAyahStopMs = null;
+        _hifzRepeatsLeft = _targetRepeatCountForMode();
         _lastAutoScrolledAyahIndex = -1;
         _isPreparingAudio = false;
       });
@@ -1264,6 +1298,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   }) {
     final hasBookmark = bookmark != null;
     final bookmarkNote = bookmark?.note.trim() ?? '';
+    final hideBanglaInHifz = _hifzModeEnabled && _hifzHideBanglaMeaning;
+    final ayahSubtitle = hideBanglaInHifz
+        ? (highlighted ? 'Arabic only - Hifz active' : 'Arabic only - Hifz')
+        : (highlighted ? 'Arabic + Bangla - Playing' : 'Arabic + Bangla');
 
     return Material(
       color: Colors.transparent,
@@ -1309,7 +1347,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    highlighted ? 'আরবি + বাংলা • চলছে' : 'আরবি + বাংলা',
+                    ayahSubtitle,
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: highlighted
@@ -1363,7 +1401,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                   ),
                 ),
               ],
-              if (bengali.isNotEmpty) ...[
+              if (bengali.isNotEmpty && !hideBanglaInHifz) ...[
                 const SizedBox(height: 8),
                 Text(
                   bengali,
