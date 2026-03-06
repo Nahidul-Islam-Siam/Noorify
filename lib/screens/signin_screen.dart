@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../app/route_names.dart';
 
-class SignupScreen extends StatelessWidget {
-  const SignupScreen({super.key});
+class SignInScreen extends StatelessWidget {
+  const SignInScreen({super.key});
 
   static const _bgPath = 'assets/images/Login.png';
 
@@ -107,7 +107,7 @@ class SignupScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
-                'Sign Up',
+                'Sign In',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFFD9F0FF),
@@ -125,7 +125,7 @@ class SignupScreen extends StatelessWidget {
               TextField(
                 decoration: _fieldStyle(
                   label: 'Email',
-                  hint: 'mulimah.gmail.com',
+                  hint: 'muslimah.gmail.com',
                   suffix: Icons.email,
                 ),
               ),
@@ -138,31 +138,27 @@ class SignupScreen extends StatelessWidget {
                   suffix: Icons.visibility_off,
                 ),
               ),
-              const SizedBox(height: 10),
-              TextField(
-                obscureText: true,
-                decoration: _fieldStyle(
-                  label: 'Confirm Password',
-                  hint: '........',
-                  suffix: Icons.visibility_off,
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Forgot password flow coming soon'),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF83D9FF),
+                  ),
+                  child: const Text(
+                    'Forgot Password?',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: const [
-                  Icon(Icons.toggle_on, color: Color(0xFF6CDFFF), size: 20),
-                  SizedBox(width: 6),
-                  Text(
-                    'Save my info ?',
-                    style: TextStyle(
-                      color: Color(0xFFB9E4FF),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 4),
               SizedBox(
                 height: 40,
                 child: ElevatedButton(
@@ -175,7 +171,7 @@ class SignupScreen extends StatelessWidget {
                   ),
                   onPressed: openHome,
                   child: const Text(
-                    'SIGN UP',
+                    'SIGN IN',
                     style: TextStyle(
                       letterSpacing: 1.3,
                       fontWeight: FontWeight.w700,
@@ -190,15 +186,6 @@ class SignupScreen extends StatelessWidget {
                 height: 38,
                 child: FilledButton.tonalIcon(
                   onPressed: openHome,
-                  icon: const Icon(Icons.phone_android, size: 18),
-                  label: const Text('Continue With Phone'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 38,
-                child: FilledButton.tonalIcon(
-                  onPressed: openHome,
                   icon: const Icon(Icons.g_mobiledata, size: 20),
                   label: const Text('Continue With Google'),
                 ),
@@ -208,13 +195,13 @@ class SignupScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Already have an account? ',
+                    "Don't have any account? ",
                     style: TextStyle(color: Color(0xFFB9E4FF), fontSize: 12),
                   ),
                   GestureDetector(
-                    onTap: () => Navigator.of(context).pushNamed(RouteNames.signIn),
+                    onTap: () => Navigator.of(context).pushNamed(RouteNames.signUp),
                     child: const Text(
-                      'Sign In',
+                      'Register',
                       style: TextStyle(
                         color: Color(0xFF50DCFF),
                         fontSize: 12,

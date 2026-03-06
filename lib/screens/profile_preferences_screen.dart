@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/services.dart';
+
 import '../app/app_globals.dart';
 import '../app/route_names.dart';
 import '../widgets/bottom_nav.dart';
@@ -15,6 +18,8 @@ class ProfilePreferencesScreen extends StatefulWidget {
 }
 
 class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
+  static const _generalToggleCacheKey = 'profile_general_toggles_v1';
+
   final values = <String, bool>{
     'Prayer Time': true,
     'Quran Verses': true,
@@ -26,6 +31,57 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     'Hadith Notification': true,
     'Email Notification': true,
   };
+  final valueDescriptions = <String, String>{
+    'Prayer Time': 'Prayer schedule updates and reminders.',
+    'Quran Verses': 'Daily ayah and recitation suggestions.',
+    'Prayer Learning': 'Learning tips for salah and practice.',
+    'Daily Tasbeeh': 'Tasbeeh checklist reminder.',
+    'Zikir Times': 'Morning and evening dhikr reminders.',
+    'Daily Newsfeed': 'Islamic article and content feed updates.',
+    'Dua Reminder': 'Recommended duas during the day.',
+    'Hadith Notification': 'Daily hadith notification.',
+    'Email Notification': 'Receive app updates by email.',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGeneralToggles();
+  }
+
+  Future<void> _loadGeneralToggles() async {
+    final cached = await DefaultCacheManager().getFileFromCache(
+      _generalToggleCacheKey,
+    );
+    if (cached == null || !await cached.file.exists()) return;
+
+    try {
+      final json = jsonDecode(await cached.file.readAsString());
+      if (json is! Map) return;
+      if (!mounted) return;
+      setState(() {
+        for (final entry in json.entries) {
+          final key = entry.key.toString();
+          final value = entry.value;
+          if (values.containsKey(key) && value is bool) {
+            values[key] = value;
+          }
+        }
+      });
+    } catch (_) {
+      // Ignore invalid cache and keep defaults.
+    }
+  }
+
+  Future<void> _saveGeneralToggles() async {
+    final payload = jsonEncode(values);
+    await DefaultCacheManager().putFile(
+      _generalToggleCacheKey,
+      Uint8List.fromList(utf8.encode(payload)),
+      key: _generalToggleCacheKey,
+      fileExtension: 'json',
+    );
+  }
 
   Future<void> _clearCache() async {
     final shouldClear = await showDialog<bool>(
@@ -62,9 +118,32 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     await Navigator.of(context).pushNamed(routeName);
   }
 
+  Future<void> _persistAppPreferences() async {
+    await saveAppPreferences();
+  }
+
+  Future<void> _openEditProfile() async {
+    await Navigator.of(context).pushNamed(RouteNames.editProfile);
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _toggleLanguage(int index) async {
+    appLanguageNotifier.value = index == 0
+        ? AppLanguage.english
+        : AppLanguage.bangla;
+    await _persistAppPreferences();
+  }
+
+  Future<void> _toggleLocationMode(bool enabled) async {
+    useDeviceLocationNotifier.value = enabled;
+    await _persistAppPreferences();
+  }
+
   Future<void> _toggleSehriAlert(bool enabled) async {
     if (!enabled) {
       sehriAlertEnabledNotifier.value = false;
+      await _persistAppPreferences();
       return;
     }
     final granted = await ensureNotificationPermissions();
@@ -75,14 +154,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
         );
       }
       sehriAlertEnabledNotifier.value = false;
+      await _persistAppPreferences();
       return;
     }
     sehriAlertEnabledNotifier.value = true;
+    await _persistAppPreferences();
   }
 
   Future<void> _togglePrayerAlerts(bool enabled) async {
     if (!enabled) {
       prayerAlertsEnabledNotifier.value = false;
+      await _persistAppPreferences();
       return;
     }
     final granted = await ensureNotificationPermissions();
@@ -93,14 +175,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
         );
       }
       prayerAlertsEnabledNotifier.value = false;
+      await _persistAppPreferences();
       return;
     }
     prayerAlertsEnabledNotifier.value = true;
+    await _persistAppPreferences();
   }
 
   Future<void> _toggleIftarAlert(bool enabled) async {
     if (!enabled) {
       iftarAlertEnabledNotifier.value = false;
+      await _persistAppPreferences();
       return;
     }
     final granted = await ensureNotificationPermissions();
@@ -111,9 +196,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
         );
       }
       iftarAlertEnabledNotifier.value = false;
+      await _persistAppPreferences();
       return;
     }
     iftarAlertEnabledNotifier.value = true;
+    await _persistAppPreferences();
   }
 
   Future<void> _testAlertNow({required bool sehri}) async {
@@ -184,6 +271,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
 
     alertToneNotifier.value = tone;
     await saveAlertTonePreference(tone);
+    await _persistAppPreferences();
     if (!mounted) return;
     final message = tone == AppAlertTone.adhan
         ? 'Alert tone: ${alertToneLabel(tone)}. Add adhan_alert.mp3 in android/app/src/main/res/raw/'
@@ -191,6 +279,33 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout now?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Logout'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm != true || !mounted) return;
+    Navigator.of(
+      context,
+    ).pushNamedAndRemoveUntil(RouteNames.signIn, (route) => false);
   }
 
   @override
@@ -211,20 +326,33 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                   const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Nuha Mvhed Zunader',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                    children: [
+                      ValueListenableBuilder<String>(
+                        valueListenable: profileNameNotifier,
+                        builder: (context, name, _) {
+                          return Text(
+                            name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          );
+                        },
                       ),
-                      Text(
-                        'Done namaj 30/30',
-                        style: TextStyle(fontSize: 11, color: Colors.blueGrey),
+                      ValueListenableBuilder<String>(
+                        valueListenable: profileProgressNotifier,
+                        builder: (context, progress, _) {
+                          return Text(
+                            progress,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.blueGrey,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
                   const Spacer(),
                   IconButton(
-                    onPressed: () {},
+                    onPressed: _openEditProfile,
                     icon: const Icon(Icons.settings_outlined),
                   ),
                 ],
@@ -258,11 +386,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             language == AppLanguage.english,
                             language == AppLanguage.bangla,
                           ],
-                          onPressed: (index) {
-                            appLanguageNotifier.value = index == 0
-                                ? AppLanguage.english
-                                : AppLanguage.bangla;
-                          },
+                          onPressed: (index) => _toggleLanguage(index),
                           children: const [
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 12),
@@ -318,7 +442,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       builder: (context, enabled, _) {
                         return Switch(
                           value: enabled,
-                          onChanged: (v) => useDeviceLocationNotifier.value = v,
+                          onChanged: _toggleLocationMode,
                           activeThumbColor: const Color(0xFF14A3B8),
                         );
                       },
@@ -502,13 +626,16 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       contentPadding: EdgeInsets.zero,
                       dense: true,
                       title: Text(e.key, style: const TextStyle(fontSize: 13)),
-                      subtitle: const Text(
-                        'Lorem ipsum description',
-                        style: TextStyle(fontSize: 10),
+                      subtitle: Text(
+                        valueDescriptions[e.key] ?? '',
+                        style: const TextStyle(fontSize: 10),
                       ),
                       value: e.value,
                       activeThumbColor: const Color(0xFF14A3B8),
-                      onChanged: (v) => setState(() => values[e.key] = v),
+                      onChanged: (v) {
+                        setState(() => values[e.key] = v);
+                        _saveGeneralToggles();
+                      },
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -520,6 +647,13 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     margin: const EdgeInsets.only(top: 8),
                     child: Column(
                       children: [
+                        ListTile(
+                          leading: const Icon(Icons.edit_outlined),
+                          title: const Text('Edit Profile'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _openEditProfile,
+                        ),
+                        const Divider(height: 1),
                         ListTile(
                           leading: const Icon(Icons.privacy_tip_outlined),
                           title: const Text('Privacy Policy'),
@@ -575,7 +709,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                   backgroundColor: const Color(0xFFE74A5A),
                   foregroundColor: Colors.white,
                 ),
-                onPressed: () {},
+                onPressed: _logout,
                 child: const Text('Logout'),
               ),
             ),

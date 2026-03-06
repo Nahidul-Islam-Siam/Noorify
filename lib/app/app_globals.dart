@@ -30,8 +30,15 @@ final ValueNotifier<bool> sehriAlertEnabledNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<bool> iftarAlertEnabledNotifier = ValueNotifier<bool>(true);
 final ValueNotifier<AppAlertTone> alertToneNotifier =
     ValueNotifier<AppAlertTone>(AppAlertTone.appDefault);
+final ValueNotifier<String> profileNameNotifier = ValueNotifier<String>(
+  'Nuha Mvhed Zunader',
+);
+final ValueNotifier<String> profileProgressNotifier = ValueNotifier<String>(
+  'Done namaj 30/30',
+);
 
 const _alertToneCacheKey = 'alert_tone_preference_v1';
+const _appPreferencesCacheKey = 'app_preferences_v1';
 final BaseCacheManager _settingsCache = DefaultCacheManager();
 
 String alertToneLabel(AppAlertTone tone) {
@@ -102,6 +109,72 @@ Future<void> initializeNotifications() async {
 
   await loadAlertTonePreference();
   await ensureNotificationPermissions();
+}
+
+Future<void> loadAppPreferences() async {
+  final cached = await _settingsCache.getFileFromCache(_appPreferencesCacheKey);
+  if (cached == null || !await cached.file.exists()) return;
+
+  try {
+    final json = jsonDecode(await cached.file.readAsString());
+    if (json is! Map) return;
+
+    final language = (json['language'] ?? '').toString();
+    appLanguageNotifier.value = language == 'bangla'
+        ? AppLanguage.bangla
+        : AppLanguage.english;
+
+    final useDeviceLocation = json['useDeviceLocation'];
+    if (useDeviceLocation is bool) {
+      useDeviceLocationNotifier.value = useDeviceLocation;
+    }
+
+    final prayerAlerts = json['prayerAlerts'];
+    if (prayerAlerts is bool) {
+      prayerAlertsEnabledNotifier.value = prayerAlerts;
+    }
+
+    final sehriAlert = json['sehriAlert'];
+    if (sehriAlert is bool) {
+      sehriAlertEnabledNotifier.value = sehriAlert;
+    }
+
+    final iftarAlert = json['iftarAlert'];
+    if (iftarAlert is bool) {
+      iftarAlertEnabledNotifier.value = iftarAlert;
+    }
+
+    final profileName = (json['profileName'] ?? '').toString().trim();
+    if (profileName.isNotEmpty) {
+      profileNameNotifier.value = profileName;
+    }
+
+    final profileProgress = (json['profileProgress'] ?? '').toString().trim();
+    if (profileProgress.isNotEmpty) {
+      profileProgressNotifier.value = profileProgress;
+    }
+  } catch (_) {
+    // Ignore corrupted local preferences and keep defaults.
+  }
+}
+
+Future<void> saveAppPreferences() async {
+  final payload = jsonEncode({
+    'language': appLanguageNotifier.value.name,
+    'useDeviceLocation': useDeviceLocationNotifier.value,
+    'prayerAlerts': prayerAlertsEnabledNotifier.value,
+    'sehriAlert': sehriAlertEnabledNotifier.value,
+    'iftarAlert': iftarAlertEnabledNotifier.value,
+    'profileName': profileNameNotifier.value,
+    'profileProgress': profileProgressNotifier.value,
+  });
+
+  await _settingsCache.putFile(
+    _appPreferencesCacheKey,
+    Uint8List.fromList(utf8.encode(payload)),
+    key: _appPreferencesCacheKey,
+    fileExtension: 'json',
+  );
 }
 
 Future<void> loadAlertTonePreference() async {

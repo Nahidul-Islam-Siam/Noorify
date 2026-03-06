@@ -9,6 +9,7 @@ import 'app/route_names.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeNotifications();
+  await loadAppPreferences();
   runApp(const MyApp());
 }
 

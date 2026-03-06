@@ -10,6 +10,60 @@ This document tracks planned improvements for Noorify.
 
 ## Priority Roadmap
 
+## App Completion Roadmap (High Priority)
+
+Use this sequence to move Noorify from a strong prototype to a complete
+production app.
+
+1. Real Sign In / Sign Up Backend
+- Add Firebase/Auth backend for email, Google, and phone login.
+- Keep user session and secure token handling.
+
+2. First-Time Onboarding
+- Ask for language, location, notification permission, and prayer settings.
+- Save onboarding choices to user profile.
+
+3. Prayer Tracking Module
+- Let users mark each prayer as done/missed.
+- Show daily streaks and monthly progress.
+
+4. Final Qibla Experience
+- Add calibration guidance and compass accuracy status.
+- Use location-based qibla with reliable offline fallback.
+
+5. Quran Productivity Features
+- Add bookmarks, highlights, notes, and synced last-read position.
+- Improve resume-reading flow.
+
+6. Audio Experience Upgrade
+- Support background play and lock screen controls.
+- Add repeat modes and stronger download manager controls.
+
+7. Dua and Dhikr Section
+- Add morning/evening adhkar, favorites, and reminder scheduling.
+- Include tasbeeh counter with daily targets.
+
+8. Ramadan Toolkit
+- Add fasting tracker, sehri/iftar tools, zakat calculator, and goals.
+
+9. Complete Profile and Account Controls
+- Add profile photo upload and account management options.
+- Add account delete and data export controls.
+
+10. Release Readiness
+- Add crash reporting, analytics, privacy/legal screens, and store QA checklist.
+
+## Delivery Phases
+
+Phase 1:
+- 1, 2, 3
+
+Phase 2:
+- 4, 5, 6
+
+Phase 3:
+- 7, 8, 9, 10
+
 ## 1) Hifz Mode (Memorization Mode) - Next Major Feature
 
 Why:

@@ -9,19 +9,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:first_project/main.dart';
+import 'package:first_project/screens/daily_activity_screen.dart';
 
 void main() {
-  testWidgets('Shows splash then opens Noorify starter home', (
+  testWidgets('Shows splash then opens Daily Activity home', (
     WidgetTester tester,
   ) async {
+    final view = tester.view;
+    view.physicalSize = const Size(1080, 2400);
+    view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      view.resetPhysicalSize();
+      view.resetDevicePixelRatio();
+    });
+
     await tester.pumpWidget(const MyApp());
 
     expect(find.byKey(const Key('opening_splash_image')), findsOneWidget);
 
-    await tester.pump(const Duration(seconds: 2));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 1900));
+    await tester.pump();
 
-    expect(find.text('Noorify'), findsOneWidget);
-    expect(find.text('Daily Activity'), findsOneWidget);
+    expect(find.byType(DailyActivityScreen), findsOneWidget);
   });
 }

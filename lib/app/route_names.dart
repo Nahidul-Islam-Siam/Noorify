@@ -2,6 +2,7 @@ class RouteNames {
   static const home = '/';
   static const preview = '/preview';
   static const splash = '/splash';
+  static const signIn = '/signin';
   static const signUp = '/signup';
   static const preferences = '/preferences';
   static const editProfile = '/edit-profile';

@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'route_names.dart';
 import '../screens/daily_activity_screen.dart';
 import '../screens/edit_profile_screen.dart';
-import '../screens/noorify_home_screen.dart';
 import '../screens/about_screen.dart';
 import '../screens/profile_preferences_screen.dart';
 import '../screens/privacy_policy_screen.dart';
 import '../screens/quran_screen.dart';
 import '../screens/qibla_compass_screen.dart';
 import '../screens/ramadan_splash_screen.dart';
+import '../screens/signin_screen.dart';
 import '../screens/signup_screen.dart';
 import '../screens/ui_preview_home.dart';
 
@@ -17,11 +17,13 @@ class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case RouteNames.home:
-        return _page(const NoorifyHomeScreen(), settings);
+        return _page(const DailyActivityScreen(), settings);
       case RouteNames.preview:
         return _page(const UiPreviewHome(), settings);
       case RouteNames.splash:
         return _page(const RamadanSplashScreen(), settings);
+      case RouteNames.signIn:
+        return _page(const SignInScreen(), settings);
       case RouteNames.signUp:
         return _page(const SignupScreen(), settings);
       case RouteNames.preferences:
@@ -39,7 +41,7 @@ class AppRoutes {
       case RouteNames.about:
         return _page(const AboutScreen(), settings);
       default:
-        return _page(const NoorifyHomeScreen(), settings);
+        return _page(const DailyActivityScreen(), settings);
     }
   }
 

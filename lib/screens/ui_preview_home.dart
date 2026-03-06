@@ -9,6 +9,7 @@ class UiPreviewHome extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <({String title, String routeName})>[
       (title: 'Splash Screen', routeName: RouteNames.splash),
+      (title: 'Sign In Screen', routeName: RouteNames.signIn),
       (title: 'Sign Up Screen', routeName: RouteNames.signUp),
       (title: 'Profile Preferences', routeName: RouteNames.preferences),
       (title: 'Edit Profile', routeName: RouteNames.editProfile),
