@@ -67,7 +67,7 @@ class AsmaService {
           ),
         );
       }
-
+ 
       output.sort((a, b) => a.id.compareTo(b.id));
       return output;
     } on DioException catch (e) {
@@ -80,7 +80,7 @@ class AsmaService {
       throw Exception('Failed to fetch Asmaul Husna: $e');
     }
   }
-
+                                                              
   Future<List<AsmaName>> loadAsmaNames() async {
     try {
       final raw = await rootBundle.loadString(assetPath);
@@ -100,7 +100,7 @@ class AsmaService {
     } catch (e) {
       throw Exception('Failed to load $assetPath: $e');
     }
-  }
+  }                                                   
 
   List<Map<String, dynamic>> toJsonList(List<AsmaName> names) {
     return names.map((item) => item.toJson()).toList(growable: false);

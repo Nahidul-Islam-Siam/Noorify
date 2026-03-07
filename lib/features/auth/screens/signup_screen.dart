@@ -5,7 +5,7 @@ import 'package:first_project/core/constants/route_names.dart';
 class SignupScreen extends StatelessWidget {
   const SignupScreen({super.key});
 
-  static const _bgPath = 'assets/images/Login.png';
+  static const _bgPath = 'assets/images/Login.jpg';
 
   InputDecoration _fieldStyle({
     required String label,

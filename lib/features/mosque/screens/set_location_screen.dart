@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:first_project/shared/widgets/bottom_nav.dart';
@@ -34,11 +35,18 @@ class SetLocationScreen extends StatefulWidget {
 }
 
 class _SetLocationScreenState extends State<SetLocationScreen> {
+  static final _tileCachingProvider =
+      BuiltInMapCachingProvider.getOrCreateInstance(
+        maxCacheSize: 300 * 1024 * 1024,
+        overrideFreshAge: const Duration(days: 14),
+      );
+
   final TextEditingController _searchController = TextEditingController();
   late final MapController _mapController;
   late LatLng _selectedPoint;
   late String _selectedLabel;
   bool _resolvingLabel = false;
+  bool _locatingCurrent = false;
 
   @override
   void initState() {
@@ -91,13 +99,53 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
     }
   }
 
-  void _resetToInitial() {
-    final initial = LatLng(widget.initialLatitude, widget.initialLongitude);
-    setState(() {
-      _selectedPoint = initial;
-      _selectedLabel = widget.initialLabel;
-    });
-    _mapController.move(initial, 15.5);
+  Future<void> _useCurrentLocation() async {
+    if (_locatingCurrent) return;
+    setState(() => _locatingCurrent = true);
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enable phone location service.'),
+          ),
+        );
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location permission denied on this device.'),
+          ),
+        );
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition();
+      final point = LatLng(position.latitude, position.longitude);
+      if (!mounted) return;
+      setState(() => _selectedPoint = point);
+      _mapController.move(point, 15.5);
+      await _resolveLabelFromCoordinates(point);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not read current location.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _locatingCurrent = false);
+      }
+    }
   }
 
   void _confirmSelection() {
@@ -178,6 +226,44 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _locatingCurrent ? null : _useCurrentLocation,
+                  icon: _locatingCurrent
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.8,
+                            color: Color(0xFF5DA7B4),
+                          ),
+                        )
+                      : const Icon(
+                          Icons.my_location_rounded,
+                          size: 16,
+                          color: Color(0xFF5DA7B4),
+                        ),
+                  label: const Text(
+                    'Use current location',
+                    style: TextStyle(
+                      color: Color(0xFF5DA7B4),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ),
             Expanded(
               child: Stack(
                 children: [
@@ -196,6 +282,9 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                           urlTemplate:
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.noorify.app',
+                          tileProvider: NetworkTileProvider(
+                            cachingProvider: _tileCachingProvider,
+                          ),
                         ),
                         MarkerLayer(
                           markers: [
@@ -313,7 +402,7 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                       shape: const CircleBorder(),
                       elevation: 2,
                       child: IconButton(
-                        onPressed: _resetToInitial,
+                        onPressed: _useCurrentLocation,
                         icon: const Icon(
                           Icons.my_location_rounded,
                           color: Color(0xFF5DA7B4),

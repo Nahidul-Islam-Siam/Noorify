@@ -141,6 +141,10 @@ Completed (out of order by priority request):
   - Toggle-based Hifz mode (off by default)
   - Single-ayah auto repeat (1x/3x/5x/10x)
   - Optional "Hide Bangla meaning" practice view
+- Hadith starter module (local)
+  - Added lightweight Sahih Bukhari dataset (50 hadith)
+  - Added local Hadith screen with search and detail view
+  - Kept audio nullable for future extension
 
 Next up:
 - Hifz Mode phase 2 (A-B repeat, ayah range, progress tracking)

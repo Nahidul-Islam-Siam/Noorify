@@ -13,7 +13,7 @@ class RamadanSplashScreen extends StatefulWidget {
 
 class _RamadanSplashScreenState extends State<RamadanSplashScreen> {
   static const _splashDuration = Duration(milliseconds: 1800);
-  static const _openingImagePath = 'assets/images/app-opening-page.png';
+  static const _openingImagePath = 'assets/images/app-opening-page.jpg';
 
   @override
   void initState() {

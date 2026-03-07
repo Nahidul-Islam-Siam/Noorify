@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:first_project/core/theme/brand_colors.dart';
 import 'package:first_project/features/mosque/models/mosque_item.dart';
 import 'package:first_project/features/mosque/services/mosque_location_service.dart';
+import 'package:first_project/features/mosque/services/mosque_results_cache_service.dart';
 import 'package:first_project/features/mosque/services/mosque_service.dart';
 import 'package:first_project/features/mosque/screens/set_location_screen.dart';
 import 'package:first_project/shared/services/app_globals.dart';
@@ -34,12 +35,15 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
 
   final MosqueService _mosqueService = MosqueService();
   final MosqueLocationService _locationService = MosqueLocationService();
+  final MosqueResultsCacheService _resultsCache = MosqueResultsCacheService();
   final TextEditingController _searchController = TextEditingController();
 
   bool _isLoading = true;
   String? _error;
   String? _noticeMessage;
   bool _showNoticeRetry = false;
+  DateTime? _lastUpdatedAt;
+  bool _showingCachedData = false;
   String _query = '';
   final int _selectedRadius = 5000;
   double? _latitude;
@@ -181,6 +185,12 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
         longitude: resolved.lng,
         radiusMeters: _selectedRadius,
       );
+      await _resultsCache.save(
+        queryLatitude: resolved.lat,
+        queryLongitude: resolved.lng,
+        radiusMeters: _selectedRadius,
+        items: items,
+      );
 
       final notice = _noticeForFallback(resolved.reason);
       if (!mounted) return;
@@ -190,21 +200,55 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
         _locationLabel = resolved.label;
         _usingFallbackLocation = resolved.usingFallbackLocation;
         _mosques = items;
+        _lastUpdatedAt = DateTime.now();
+        _showingCachedData = false;
         _noticeMessage = _hasCustomLocation ? null : notice.message;
         _showNoticeRetry = _hasCustomLocation ? false : notice.showRetry;
         _isLoading = false;
       });
     } catch (e) {
       var message = 'Could not load nearby mosques. Please try again.';
+      var loadedFromCache = false;
+      MosqueCachedResults? cached;
       if (e is MosqueLookupException) {
         message = e.message;
+        if (e.type == MosqueLookupErrorType.network ||
+            e.type == MosqueLookupErrorType.server) {
+          cached = await _resultsCache.load();
+          if (cached != null && cached.items.isNotEmpty) {
+            loadedFromCache = true;
+          }
+        }
       }
       if (!mounted) return;
-      setState(() {
-        _error = message;
-        _showNoticeRetry = true;
-        _isLoading = false;
-      });
+
+      if (loadedFromCache && cached != null) {
+        final cachedResults = cached;
+        final cachedTime = TimeOfDay.fromDateTime(cachedResults.updatedAt);
+        final hour = cachedTime.hourOfPeriod == 0
+            ? 12
+            : cachedTime.hourOfPeriod;
+        final minute = cachedTime.minute.toString().padLeft(2, '0');
+        final suffix = cachedTime.period == DayPeriod.am ? 'AM' : 'PM';
+        final dateLabel =
+            '${cachedResults.updatedAt.year}-${cachedResults.updatedAt.month.toString().padLeft(2, '0')}-${cachedResults.updatedAt.day.toString().padLeft(2, '0')}';
+        setState(() {
+          _mosques = cachedResults.items;
+          _lastUpdatedAt = cachedResults.updatedAt;
+          _showingCachedData = true;
+          _error = null;
+          _noticeMessage =
+              'Offline mode: showing last saved mosque list ($dateLabel $hour:$minute $suffix).';
+          _showNoticeRetry = true;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = message;
+          _showNoticeRetry = true;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -652,6 +696,46 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
     );
   }
 
+  String _lastUpdatedLabel(DateTime value) {
+    final time = TimeOfDay.fromDateTime(value);
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final suffix = time.period == DayPeriod.am ? 'AM' : 'PM';
+    final date =
+        '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+    return '$date $hour:$minute $suffix';
+  }
+
+  Widget _buildLastUpdatedHeader() {
+    final updatedAt = _lastUpdatedAt;
+    if (updatedAt == null) return const SizedBox.shrink();
+
+    final prefix = _showingCachedData
+        ? 'Last updated (cached)'
+        : 'Last updated';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.update_rounded, size: 14, color: Color(0xFF7E98AE)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '$prefix: ${_lastUpdatedLabel(updatedAt)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: Color(0xFF7E98AE),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -743,6 +827,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                           ],
                         ),
                         const SizedBox(height: 14),
+                        _buildLastUpdatedHeader(),
                         _buildNoticeBanner(),
                         _buildMosqueList(),
                       ],

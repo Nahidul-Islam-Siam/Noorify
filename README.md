@@ -11,6 +11,7 @@ and offline-friendly behavior.
 - Quran browsing and Surah detail views.
 - Ayah-level bookmarks and short personal notes (stored locally).
 - Hifz mode toggle with single-ayah repeat and optional Arabic-only practice.
+- Sahih Bukhari starter collection (50 hadith, local JSON, offline-ready).
 - Offline Quran text cache and offline audio download support.
 - Qibla compass with heading and bearing guidance.
 - Profile/preferences for language, location mode, and alert settings.
@@ -60,9 +61,10 @@ flutter test
 ## Useful Project Paths
 
 - `lib/main.dart`: app entry point and theme/bootstrap.
-- `lib/screens/`: UI screens (home, prayer activity, Quran, Qibla, settings).
-- `lib/services/`: API, offline cache, and Quran helper services.
-- `lib/app/`: route names, route generator, shared app-wide settings.
+- `lib/core/constants/`: route names and route generator.
+- `lib/features/`: feature-based modules (`home`, `quran`, `dua`, `asmaul_husna`, `hadith`, etc.).
+- `lib/shared/`: shared widgets/services.
+- `assets/data/`: local datasets (`asmaul_husna.json`, `duas.json`, `hadith_bukhari_50.json`).
 - `assets/images/`: static image assets.
 
 ## Notes
