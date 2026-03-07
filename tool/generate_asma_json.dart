@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:first_project/models/asma_name.dart';
+import 'package:first_project/features/asmaul_husna/models/asma_name.dart';
 
 Future<List<AsmaName>> fetchAsmaNames() async {
   final dio = Dio(

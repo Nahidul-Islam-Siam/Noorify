@@ -1,0 +1,16 @@
+class RouteNames {
+  static const home = '/';
+  static const preview = '/preview';
+  static const splash = '/splash';
+  static const signIn = '/signin';
+  static const signUp = '/signup';
+  static const preferences = '/preferences';
+  static const editProfile = '/edit-profile';
+  static const activity = '/activity';
+  static const asma = '/asma';
+  static const dua = '/dua';
+  static const quran = '/quran';
+  static const prayerCompass = '/prayer-compass';
+  static const privacyPolicy = '/privacy-policy';
+  static const about = '/about';
+}

@@ -1,0 +1,54 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import 'package:first_project/core/constants/route_names.dart';
+
+class RamadanSplashScreen extends StatefulWidget {
+  const RamadanSplashScreen({super.key});
+
+  @override
+  State<RamadanSplashScreen> createState() => _RamadanSplashScreenState();
+}
+
+class _RamadanSplashScreenState extends State<RamadanSplashScreen> {
+  static const _splashDuration = Duration(milliseconds: 1800);
+  static const _openingImagePath = 'assets/images/app-opening-page.png';
+
+  @override
+  void initState() {
+    super.initState();
+    _openHomeAfterDelay();
+  }
+
+  Future<void> _openHomeAfterDelay() async {
+    await Future<void>.delayed(_splashDuration);
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed(RouteNames.home);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SizedBox.expand(
+        child: Image.asset(
+          _openingImagePath,
+          key: const Key('opening_splash_image'),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return const Center(
+              child: Text(
+                'Noorify',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

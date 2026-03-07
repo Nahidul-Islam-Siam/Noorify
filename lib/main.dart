@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'app/brand_colors.dart';
-import 'app/app_globals.dart';
-import 'app/app_routes.dart';
-import 'app/route_names.dart';
+import 'package:first_project/core/theme/brand_colors.dart';
+import 'package:first_project/shared/services/app_globals.dart';
+import 'package:first_project/core/constants/app_routes.dart';
+import 'package:first_project/core/constants/route_names.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
