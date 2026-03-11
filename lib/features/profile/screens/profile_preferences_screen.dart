@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'package:first_project/features/auth/services/auth_service.dart';
 import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/core/constants/route_names.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
@@ -110,9 +112,215 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
       },
     );
     if (confirm != true || !mounted) return;
+    try {
+      await AuthService.instance.signOut();
+    } catch (_) {
+      // Keep logout flow usable even if sign out fails on a local-only session.
+    }
+    if (!mounted) return;
     Navigator.of(
       context,
     ).pushNamedAndRemoveUntil(RouteNames.signIn, (route) => false);
+  }
+
+  Future<void> _openChangePassword() async {
+    final user = AuthService.instance.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please sign in first.')));
+      return;
+    }
+
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    var obscureCurrent = true;
+    var obscureNew = true;
+    var obscureConfirm = true;
+    var submitting = false;
+
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            Future<void> submitChange() async {
+              final current = currentPasswordController.text;
+              final next = newPasswordController.text;
+              final confirm = confirmPasswordController.text;
+
+              if (current.isEmpty || next.isEmpty || confirm.isEmpty) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please complete all fields.')),
+                );
+                return;
+              }
+              if (next.length < 6) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'New password must be at least 6 characters.',
+                    ),
+                  ),
+                );
+                return;
+              }
+              if (next != confirm) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'New password and confirm password do not match.',
+                    ),
+                  ),
+                );
+                return;
+              }
+              if (current == next) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'New password must be different from current password.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              setDialogState(() => submitting = true);
+              try {
+                await AuthService.instance.changePassword(
+                  currentPassword: current,
+                  newPassword: next,
+                );
+                if (!dialogContext.mounted) return;
+                Navigator.of(dialogContext).pop(true);
+              } on FirebaseAuthException catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(AuthService.instance.messageForException(e)),
+                  ),
+                );
+              } catch (_) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Failed to change password. Please try again.',
+                    ),
+                  ),
+                );
+              } finally {
+                if (dialogContext.mounted) {
+                  setDialogState(() => submitting = false);
+                }
+              }
+            }
+
+            return AlertDialog(
+              title: Text(_text('Change Password', 'Change Password')),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: currentPasswordController,
+                    obscureText: obscureCurrent,
+                    decoration: InputDecoration(
+                      labelText: _text('Current Password', 'Current Password'),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setDialogState(
+                            () => obscureCurrent = !obscureCurrent,
+                          );
+                        },
+                        icon: Icon(
+                          obscureCurrent
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: newPasswordController,
+                    obscureText: obscureNew,
+                    decoration: InputDecoration(
+                      labelText: _text('New Password', 'New Password'),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setDialogState(() => obscureNew = !obscureNew);
+                        },
+                        icon: Icon(
+                          obscureNew
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: confirmPasswordController,
+                    obscureText: obscureConfirm,
+                    decoration: InputDecoration(
+                      labelText: _text('Confirm Password', 'Confirm Password'),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setDialogState(
+                            () => obscureConfirm = !obscureConfirm,
+                          );
+                        },
+                        icon: Icon(
+                          obscureConfirm
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: submitting
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(false),
+                  child: Text(_text('Cancel', 'Cancel')),
+                ),
+                FilledButton(
+                  onPressed: submitting ? null : submitChange,
+                  child: submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(_text('Update', 'Update')),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    currentPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
+
+    if (changed == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password updated successfully.')),
+      );
+    }
   }
 
   Future<void> _setFontSize(AppFontSize value) async {
@@ -141,6 +349,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
 
   Future<void> _setDarkTheme(bool value) async {
     darkThemeEnabledNotifier.value = value;
+    await saveAppPreferences();
+  }
+
+  Future<void> _setHapticFeedback(bool value) async {
+    hapticFeedbackEnabledNotifier.value = value;
     await saveAppPreferences();
   }
 
@@ -652,6 +865,16 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             },
                           ),
                           Divider(height: 1, color: glass.glassBorder),
+                          _rowTile(
+                            icon: Icons.lock_outline_rounded,
+                            title: _text('Change Password', 'Change Password'),
+                            subtitle: _text(
+                              'Update your account password',
+                              'Update your account password',
+                            ),
+                            onTap: _openChangePassword,
+                          ),
+                          Divider(height: 1, color: glass.glassBorder),
                           ValueListenableBuilder<bool>(
                             valueListenable: darkThemeEnabledNotifier,
                             builder: (context, enabled, _) {
@@ -667,6 +890,22 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 ),
                                 value: enabled,
                                 onChanged: _setDarkTheme,
+                              );
+                            },
+                          ),
+                          Divider(height: 1, color: glass.glassBorder),
+                          ValueListenableBuilder<bool>(
+                            valueListenable: hapticFeedbackEnabledNotifier,
+                            builder: (context, enabled, _) {
+                              return _switchRow(
+                                icon: Icons.vibration_rounded,
+                                title: _text('Vibration', 'Vibration'),
+                                subtitle: _text(
+                                  'Enable vibration feedback in app actions',
+                                  'Enable vibration feedback in app actions',
+                                ),
+                                value: enabled,
+                                onChanged: _setHapticFeedback,
                               );
                             },
                           ),

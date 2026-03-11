@@ -1,20 +1,46 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:first_project/core/constants/route_names.dart';
+import 'package:first_project/features/auth/services/auth_service.dart';
 import 'package:first_project/shared/widgets/noorify_glass.dart';
 
-class SignupScreen extends StatelessWidget {
+class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
 
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen> {
   static const _bgPath = 'assets/images/Login.jpg';
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+  bool _saveInfo = true;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   InputDecoration _fieldStyle(
     NoorifyGlassTheme glass, {
     required String label,
     required String hint,
-    required IconData suffix,
+    required Widget suffixIcon,
   }) {
     return InputDecoration(
       labelText: label,
@@ -29,7 +55,7 @@ class SignupScreen extends StatelessWidget {
       fillColor: glass.isDark
           ? const Color(0x3F122634)
           : const Color(0xDFFFFFFF),
-      suffixIcon: Icon(suffix, color: glass.accentSoft, size: 16),
+      suffixIcon: suffixIcon,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -106,15 +132,78 @@ class SignupScreen extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final glass = NoorifyGlassTheme(context);
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
-    void openHome() {
+  Future<void> _signUp() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirm = _confirmPasswordController.text;
+
+    if (email.isEmpty || password.isEmpty || confirm.isEmpty) {
+      _showMessage('Please complete all fields.');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showMessage('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (password != confirm) {
+      _showMessage('Password and confirm password do not match.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.signUpWithEmail(
+        email: email,
+        password: password,
+      );
+      if (!mounted) return;
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil(RouteNames.home, (route) => false);
+    } on FirebaseAuthException catch (e) {
+      _showMessage(AuthService.instance.messageForException(e));
+    } catch (_) {
+      _showMessage('Sign up failed. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.signInWithGoogle();
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(RouteNames.home, (route) => false);
+    } on GoogleSignInException catch (e) {
+      _showMessage(AuthService.instance.messageForGoogleException(e));
+    } on FirebaseAuthException catch (e) {
+      _showMessage(AuthService.instance.messageForException(e));
+    } catch (_) {
+      _showMessage('Google sign-in failed. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
 
     return Scaffold(
       backgroundColor: glass.bgBottom,
@@ -146,37 +235,80 @@ class SignupScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
                 decoration: _fieldStyle(
                   glass,
                   label: 'Email',
                   hint: 'muslimah.gmail.com',
-                  suffix: Icons.email_outlined,
+                  suffixIcon: Icon(
+                    Icons.email_outlined,
+                    color: glass.accentSoft,
+                    size: 16,
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
-                obscureText: true,
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.newPassword],
                 decoration: _fieldStyle(
                   glass,
                   label: 'Password',
                   hint: '........',
-                  suffix: Icons.visibility_off_outlined,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: glass.accentSoft,
+                      size: 16,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
-                obscureText: true,
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirm,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) {
+                  if (_isLoading) return;
+                  _signUp();
+                },
+                autofillHints: const [AutofillHints.newPassword],
                 decoration: _fieldStyle(
                   glass,
                   label: 'Confirm Password',
                   hint: '........',
-                  suffix: Icons.visibility_off_outlined,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() => _obscureConfirm = !_obscureConfirm);
+                    },
+                    icon: Icon(
+                      _obscureConfirm
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: glass.accentSoft,
+                      size: 16,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
               Row(
                 children: [
-                  Icon(Icons.toggle_on, color: glass.accentSoft, size: 20),
+                  Switch.adaptive(
+                    value: _saveInfo,
+                    onChanged: (v) => setState(() => _saveInfo = v),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'Save my info?',
@@ -201,14 +333,25 @@ class SignupScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: openHome,
-                  child: const Text(
-                    'SIGN UP',
-                    style: TextStyle(
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  onPressed: _isLoading ? null : _signUp,
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: glass.isDark
+                                ? const Color(0xFF072734)
+                                : Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'SIGN UP',
+                          style: TextStyle(
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -217,7 +360,8 @@ class SignupScreen extends StatelessWidget {
               SizedBox(
                 height: 40,
                 child: FilledButton.tonalIcon(
-                  onPressed: openHome,
+                  onPressed: () =>
+                      _showMessage('Phone sign-up will be added next.'),
                   icon: const Icon(Icons.phone_android, size: 18),
                   label: const Text('Continue With Phone'),
                   style: FilledButton.styleFrom(
@@ -232,9 +376,11 @@ class SignupScreen extends StatelessWidget {
               SizedBox(
                 height: 40,
                 child: FilledButton.tonalIcon(
-                  onPressed: openHome,
+                  onPressed: _isLoading ? null : _signInWithGoogle,
                   icon: const Icon(Icons.g_mobiledata, size: 20),
-                  label: const Text('Continue With Google'),
+                  label: Text(
+                    _isLoading ? 'Please wait...' : 'Continue With Google',
+                  ),
                   style: FilledButton.styleFrom(
                     foregroundColor: glass.textPrimary,
                     backgroundColor: glass.isDark

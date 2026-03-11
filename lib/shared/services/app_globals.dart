@@ -74,6 +74,9 @@ final ValueNotifier<String> translationLanguageNotifier = ValueNotifier<String>(
   'Bangla',
 );
 final ValueNotifier<bool> showTajweedNotifier = ValueNotifier<bool>(false);
+final ValueNotifier<bool> hapticFeedbackEnabledNotifier = ValueNotifier<bool>(
+  true,
+);
 final ValueNotifier<String> translatorNotifier = ValueNotifier<String>(
   'Dr. Mustafa Khattab',
 );
@@ -94,7 +97,7 @@ final ValueNotifier<int> hifzRepeatCountNotifier = ValueNotifier<int>(3);
 
 const _alertToneCacheKey = 'alert_tone_preference_v1';
 const _appPreferencesCacheKey = 'app_preferences_v1';
-const _appPreferencesSchemaVersion = 2;
+const _appPreferencesSchemaVersion = 3;
 final BaseCacheManager _settingsCache = DefaultCacheManager();
 
 bool _applyLegacyBanglaMigration(Map<dynamic, dynamic> json) {
@@ -114,8 +117,7 @@ bool _applyLegacyBanglaMigration(Map<dynamic, dynamic> json) {
   }
 
   final looksLegacyTranslation =
-      storedTranslation.isEmpty ||
-      storedTranslation.toLowerCase() == 'english';
+      storedTranslation.isEmpty || storedTranslation.toLowerCase() == 'english';
   if (looksLegacyTranslation && translationLanguageNotifier.value != 'Bangla') {
     translationLanguageNotifier.value = 'Bangla';
     changed = true;
@@ -304,6 +306,11 @@ Future<void> loadAppPreferences() async {
       showTajweedNotifier.value = showTajweed;
     }
 
+    final hapticFeedback = json['hapticFeedback'];
+    if (hapticFeedback is bool) {
+      hapticFeedbackEnabledNotifier.value = hapticFeedback;
+    }
+
     final translator = (json['translator'] ?? '').toString().trim();
     if (translator.isNotEmpty) {
       translatorNotifier.value = translator;
@@ -367,6 +374,7 @@ Future<void> saveAppPreferences() async {
     'showTranslation': showTranslationNotifier.value,
     'translationLanguage': translationLanguageNotifier.value,
     'showTajweed': showTajweedNotifier.value,
+    'hapticFeedback': hapticFeedbackEnabledNotifier.value,
     'translator': translatorNotifier.value,
     'reciter': reciterNotifier.value,
     'adzanVoice': adzanVoiceNotifier.value,

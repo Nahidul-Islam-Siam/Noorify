@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:first_project/core/constants/route_names.dart';
+import 'package:first_project/features/auth/services/auth_service.dart';
 
 class RamadanSplashScreen extends StatefulWidget {
   const RamadanSplashScreen({super.key});
@@ -24,7 +25,15 @@ class _RamadanSplashScreenState extends State<RamadanSplashScreen> {
   Future<void> _openHomeAfterDelay() async {
     await Future<void>.delayed(_splashDuration);
     if (!mounted) return;
-    Navigator.of(context).pushReplacementNamed(RouteNames.home);
+    var nextRoute = RouteNames.home;
+    try {
+      nextRoute = AuthService.instance.currentUser == null
+          ? RouteNames.signIn
+          : RouteNames.home;
+    } catch (_) {
+      nextRoute = RouteNames.home;
+    }
+    Navigator.of(context).pushReplacementNamed(nextRoute);
   }
 
   @override

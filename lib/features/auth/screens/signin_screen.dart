@@ -1,20 +1,41 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:first_project/core/constants/route_names.dart';
+import 'package:first_project/features/auth/services/auth_service.dart';
 import 'package:first_project/shared/widgets/noorify_glass.dart';
 
-class SignInScreen extends StatelessWidget {
+class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
+  @override
+  State<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends State<SignInScreen> {
   static const _bgPath = 'assets/images/Login.jpg';
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   InputDecoration _fieldStyle(
     NoorifyGlassTheme glass, {
     required String label,
     required String hint,
-    required IconData suffix,
+    required Widget suffixIcon,
   }) {
     return InputDecoration(
       labelText: label,
@@ -29,7 +50,7 @@ class SignInScreen extends StatelessWidget {
       fillColor: glass.isDark
           ? const Color(0x3F122634)
           : const Color(0xDFFFFFFF),
-      suffixIcon: Icon(suffix, color: glass.accentSoft, size: 16),
+      suffixIcon: suffixIcon,
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -106,15 +127,84 @@ class SignInScreen extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final glass = NoorifyGlassTheme(context);
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
-    void openHome() {
+  Future<void> _signIn() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showMessage('Please enter email and password.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.signInWithEmail(
+        email: email,
+        password: password,
+      );
+      if (!mounted) return;
       Navigator.of(
         context,
       ).pushNamedAndRemoveUntil(RouteNames.home, (route) => false);
+    } on FirebaseAuthException catch (e) {
+      _showMessage(AuthService.instance.messageForException(e));
+    } catch (_) {
+      _showMessage('Sign in failed. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showMessage('Enter your email first to reset password.');
+      return;
+    }
+
+    try {
+      await AuthService.instance.sendPasswordReset(email);
+      _showMessage('Password reset email sent. Check your inbox.');
+    } on FirebaseAuthException catch (e) {
+      _showMessage(AuthService.instance.messageForException(e));
+    } catch (_) {
+      _showMessage('Failed to send reset email. Please try again.');
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      await AuthService.instance.signInWithGoogle();
+      if (!mounted) return;
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil(RouteNames.home, (route) => false);
+    } on GoogleSignInException catch (e) {
+      _showMessage(AuthService.instance.messageForGoogleException(e));
+    } on FirebaseAuthException catch (e) {
+      _showMessage(AuthService.instance.messageForException(e));
+    } catch (_) {
+      _showMessage('Google sign-in failed. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
 
     return Scaffold(
       backgroundColor: glass.bgBottom,
@@ -146,34 +236,54 @@ class SignInScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
                 decoration: _fieldStyle(
                   glass,
                   label: 'Email',
                   hint: 'muslimah.gmail.com',
-                  suffix: Icons.email_outlined,
+                  suffixIcon: Icon(
+                    Icons.email_outlined,
+                    color: glass.accentSoft,
+                    size: 16,
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
-                obscureText: true,
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.password],
+                onSubmitted: (_) {
+                  if (_isLoading) return;
+                  _signIn();
+                },
                 decoration: _fieldStyle(
                   glass,
                   label: 'Password',
                   hint: '........',
-                  suffix: Icons.visibility_off_outlined,
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: glass.accentSoft,
+                      size: 16,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Forgot password flow coming soon'),
-                      ),
-                    );
-                  },
+                  onPressed: _isLoading ? null : _resetPassword,
                   style: TextButton.styleFrom(
                     foregroundColor: glass.accentSoft,
                   ),
@@ -196,14 +306,25 @@ class SignInScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: openHome,
-                  child: const Text(
-                    'SIGN IN',
-                    style: TextStyle(
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  onPressed: _isLoading ? null : _signIn,
+                  child: _isLoading
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: glass.isDark
+                                ? const Color(0xFF072734)
+                                : Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'SIGN IN',
+                          style: TextStyle(
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 14),
@@ -212,9 +333,11 @@ class SignInScreen extends StatelessWidget {
               SizedBox(
                 height: 40,
                 child: FilledButton.tonalIcon(
-                  onPressed: openHome,
+                  onPressed: _isLoading ? null : _signInWithGoogle,
                   icon: const Icon(Icons.g_mobiledata, size: 20),
-                  label: const Text('Continue With Google'),
+                  label: Text(
+                    _isLoading ? 'Please wait...' : 'Continue With Google',
+                  ),
                   style: FilledButton.styleFrom(
                     foregroundColor: glass.textPrimary,
                     backgroundColor: glass.isDark

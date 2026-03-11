@@ -12,7 +12,20 @@
           "package_name": "com.noorify.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "203908439458-7jh9atflk2ku48ctaanshi3ad629i4ht.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.noorify.app",
+            "certificate_hash": "62ebd257ca903b8c10dd2be11396ad8ad411280b"
+          }
+        },
+        {
+          "client_id": "203908439458-oapcuijs7kfn9c3pif1l0rbeuc3dvh08.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyD0OQUZO5YCbySzzyrKUuoRgWtJFCGBAqY"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "203908439458-oapcuijs7kfn9c3pif1l0rbeuc3dvh08.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
