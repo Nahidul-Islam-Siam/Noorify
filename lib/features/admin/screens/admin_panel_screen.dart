@@ -35,7 +35,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
     var active = existing?.active ?? true;
     var showModal = existing?.showModal ?? true;
-    var sendPush = existing?.sendPush ?? false;
+    const sendPush = false;
     var startAt = existing?.startAt;
     var endAt = existing?.endAt;
     var submitting = false;
@@ -166,16 +166,13 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                           setDialogState(() => showModal = value);
                         },
                       ),
-                      SwitchListTile(
+                      const ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('Send push notification'),
-                        subtitle: const Text(
-                          'Queue broadcast push to all users via topic',
+                        leading: Icon(Icons.campaign_outlined),
+                        title: Text('Push sending: manual (free mode)'),
+                        subtitle: Text(
+                          'Use Firebase Console -> Messaging -> Topic noorify_all',
                         ),
-                        value: sendPush,
-                        onChanged: (value) {
-                          setDialogState(() => sendPush = value);
-                        },
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -362,16 +359,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 
-  String _pushStatusLabel(AnnouncementItem item) {
-    final status = (item.pushStatus ?? '').trim().toLowerCase();
-    if (status == 'sent') return 'Push Sent';
-    if (status == 'pending') return 'Push Pending';
-    if (status == 'processing') return 'Push Processing';
-    if (status == 'failed') return 'Push Failed';
-    if (item.sendPush) return 'Push Pending';
-    return 'Push Off';
-  }
-
   Widget _buildAnnouncementCard(BuildContext context, AnnouncementItem item) {
     final glass = NoorifyGlassTheme(context);
     final title = item.titleBn.isNotEmpty ? item.titleBn : item.titleEn;
@@ -379,24 +366,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final windowText =
         'Window: ${_formatDateTime(item.startAt)} -> '
         '${_formatDateTime(item.endAt)}';
-    final pushLabel = _pushStatusLabel(item);
-    final pushStatusLower = pushLabel.toLowerCase();
-    final pushColor = pushStatusLower.contains('sent')
-        ? const Color(0x2436D57A)
-        : pushStatusLower.contains('failed')
-        ? const Color(0x24E75F6D)
-        : pushStatusLower.contains('pending') ||
-              pushStatusLower.contains('processing')
-        ? const Color(0x24FACC15)
-        : const Color(0x24A0A8B1);
-    final pushTextColor = pushStatusLower.contains('sent')
-        ? const Color(0xFF3AD37E)
-        : pushStatusLower.contains('failed')
-        ? const Color(0xFFE77584)
-        : pushStatusLower.contains('pending') ||
-              pushStatusLower.contains('processing')
-        ? const Color(0xFFF5D94E)
-        : glass.textMuted;
 
     return NoorifyGlassCard(
       radius: BorderRadius.circular(16),
@@ -443,9 +412,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                           : glass.textMuted,
                     ),
                     _statusChip(
-                      label: pushLabel,
-                      color: pushColor,
-                      textColor: pushTextColor,
+                      label: 'Push: Manual',
+                      color: const Color(0x2438BDF8),
+                      textColor: const Color(0xFF5BC8FF),
                     ),
                   ],
                 ),
@@ -483,19 +452,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             windowText,
             style: TextStyle(color: glass.textMuted, fontSize: 10.5),
           ),
-          if ((item.pushError ?? '').trim().isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              'Push error: ${item.pushError}',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFFE77584),
-                fontSize: 10.5,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -540,18 +496,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 label: Text(item.showModal ? 'Disable Modal' : 'Enable Modal'),
               ),
               OutlinedButton.icon(
-                onPressed: () async {
-                  try {
-                    await _announcementService.queuePush(item.id);
-                    _showMessage('Push queued for broadcast.');
-                  } catch (e) {
-                    _showMessage('Queue push failed: $e');
-                  }
-                },
-                icon: const Icon(Icons.campaign_outlined, size: 16),
-                label: const Text('Queue Push'),
-              ),
-              OutlinedButton.icon(
                 onPressed: () => _confirmDelete(item),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFFE75F6D),
@@ -567,6 +511,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   }
 
   Widget _buildAdminBody(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
     return StreamBuilder<List<AnnouncementItem>>(
       stream: _announcementService.watchAnnouncements(limit: 120),
       builder: (context, snapshot) {
@@ -601,6 +546,42 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(14, 8, 14, 90),
           itemBuilder: (context, index) {
+            if (index == 0) {
+              return Column(
+                children: [
+                  NoorifyGlassCard(
+                    radius: BorderRadius.circular(14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: glass.accent,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Free mode: in-app modal works directly. For push, use Firebase Console -> Messaging -> Topic noorify_all.',
+                            style: TextStyle(
+                              color: glass.textSecondary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildAnnouncementCard(context, announcements[index]),
+                ],
+              );
+            }
             return _buildAnnouncementCard(context, announcements[index]);
           },
           separatorBuilder: (_, _) => const SizedBox(height: 10),

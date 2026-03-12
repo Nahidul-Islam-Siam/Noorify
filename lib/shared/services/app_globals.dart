@@ -60,9 +60,7 @@ final ValueNotifier<AppAlertTone> alertToneNotifier =
 final ValueNotifier<bool> darkThemeEnabledNotifier = ValueNotifier<bool>(false);
 final ValueNotifier<AppFontSize> appFontSizeNotifier =
     ValueNotifier<AppFontSize>(AppFontSize.medium);
-final ValueNotifier<String> profileNameNotifier = ValueNotifier<String>(
-  'Tuafel Ahmed Zuarder',
-);
+final ValueNotifier<String> profileNameNotifier = ValueNotifier<String>('');
 final ValueNotifier<String> profileLocationNotifier = ValueNotifier<String>(
   'Dhaka, Bangladesh',
 );

@@ -11,15 +11,37 @@ mixin DailyActivityViewMixin
     return _text('Good Evening,', 'Good Evening,');
   }
 
-  String _profileDisplayName() {
-    final value = profileNameNotifier.value.trim();
-    if (value.isEmpty) return 'Noorify User';
+  String _profileDisplayName([String? rawName]) {
+    final value = (rawName ?? profileNameNotifier.value).trim();
     return value;
   }
 
-  String _profileInitial() {
-    final name = _profileDisplayName();
+  bool _hasProfileName([String? rawName]) => _profileDisplayName(rawName).isNotEmpty;
+
+  String _profileInitial([String? rawName]) {
+    final name = _profileDisplayName(rawName);
     return name.isEmpty ? 'N' : name[0].toUpperCase();
+  }
+
+  ImageProvider<Object>? _profileAvatarImage({
+    String? encodedPhoto,
+    String? remotePhotoUrl,
+  }) {
+    final encoded = (encodedPhoto ?? profilePhotoBase64Notifier.value ?? '').trim();
+    if (encoded.isNotEmpty) {
+      try {
+        return MemoryImage(base64Decode(encoded));
+      } catch (_) {
+        // Fallback to url/default avatar when local image data is invalid.
+      }
+    }
+
+    final remoteUrl = (remotePhotoUrl ?? profilePhotoUrlNotifier.value ?? '')
+        .trim();
+    if (remoteUrl.isNotEmpty) {
+      return NetworkImage(remoteUrl);
+    }
+    return null;
   }
 
   String _activePrayerShortCountdown() {
@@ -126,50 +148,127 @@ mixin DailyActivityViewMixin
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: _isDarkTheme
-                    ? const Color(0xFF1A2F45)
-                    : const Color(0xFFDDEBF5),
-                child: Text(
-                  _profileInitial(),
-                  style: TextStyle(
-                    color: _isDarkTheme
-                        ? Colors.white
-                        : const Color(0xFF183247),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _greetingText(),
-                      style: TextStyle(
-                        color: _isDarkTheme
-                            ? const Color(0xB3D8E5F7)
-                            : const Color(0xFF4B687F),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _profileDisplayName(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        height: 1,
-                      ),
-                    ),
-                  ],
-                ),
+              ValueListenableBuilder<String>(
+                valueListenable: profileNameNotifier,
+                builder: (context, profileName, child) {
+                  return ValueListenableBuilder<String?>(
+                    valueListenable: profilePhotoBase64Notifier,
+                    builder: (context, profilePhotoBase64, child) {
+                      return ValueListenableBuilder<String?>(
+                        valueListenable: profilePhotoUrlNotifier,
+                        builder: (context, profilePhotoUrl, child) {
+                          final profileImage = _profileAvatarImage(
+                            encodedPhoto: profilePhotoBase64,
+                            remotePhotoUrl: profilePhotoUrl,
+                          );
+                          final hasName = _hasProfileName(profileName);
+                          return Expanded(
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: _isDarkTheme
+                                      ? const Color(0xFF1A2F45)
+                                      : const Color(0xFFDDEBF5),
+                                  backgroundImage: profileImage,
+                                  child: profileImage == null
+                                      ? (hasName
+                                            ? Text(
+                                                _profileInitial(profileName),
+                                                style: TextStyle(
+                                                  color: _isDarkTheme
+                                                      ? Colors.white
+                                                      : const Color(0xFF183247),
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              )
+                                            : Icon(
+                                                Icons.auto_awesome_rounded,
+                                                size: 18,
+                                                color: _isDarkTheme
+                                                    ? const Color(0xFF9EE7F4)
+                                                    : const Color(0xFF1EA8B8),
+                                              ))
+                                      : null,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _greetingText(),
+                                        style: TextStyle(
+                                          color: _isDarkTheme
+                                              ? const Color(0xB3D8E5F7)
+                                              : const Color(0xFF4B687F),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      if (hasName)
+                                        Text(
+                                          _profileDisplayName(profileName),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: _textPrimary,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w700,
+                                            height: 1,
+                                          ),
+                                        )
+                                      else
+                                        InkWell(
+                                          onTap: () => Navigator.of(
+                                            context,
+                                          ).pushNamed(RouteNames.editProfile),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 10,
+                                              vertical: 5,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _isDarkTheme
+                                                  ? const Color(0x2D2EB8E6)
+                                                  : const Color(0x251EA8B8),
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                              border: Border.all(
+                                                color: _isDarkTheme
+                                                    ? const Color(0x6659C8E4)
+                                                    : const Color(0x66A7D7E2),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              _text(
+                                                'Set your profile name',
+                                                'Set your profile name',
+                                              ),
+                                              style: TextStyle(
+                                                color: _accentSoft,
+                                                fontSize: 11.5,
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
               ),
               Material(
                 color: _isDarkTheme
@@ -809,8 +908,8 @@ mixin DailyActivityViewMixin
   }
 
   Widget _buildMosquePreviewCard() {
-    final firstName = _text('Baitul Mukarram', 'Baitul Mukarram');
-    final secondName = _text('Tara Masjid', 'Tara Masjid');
+    final items = _nearbyMosquePreview.take(3).toList(growable: false);
+    final hasData = items.isNotEmpty;
 
     return _buildGlassCard(
       child: Column(
@@ -828,8 +927,7 @@ mixin DailyActivityViewMixin
               ),
               const Spacer(),
               TextButton(
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(RouteNames.findMosque),
+                onPressed: _openFindMosque,
                 style: TextButton.styleFrom(
                   foregroundColor: _accentStrong,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -841,10 +939,10 @@ mixin DailyActivityViewMixin
           ),
           const SizedBox(height: 6),
           InkWell(
-            onTap: () => Navigator.of(context).pushNamed(RouteNames.findMosque),
+            onTap: _openFindMosque,
             borderRadius: BorderRadius.circular(14),
             child: Container(
-              height: 132,
+              constraints: const BoxConstraints(minHeight: 132),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 gradient: LinearGradient(
@@ -860,54 +958,89 @@ mixin DailyActivityViewMixin
                       : const Color(0xFFCFDFEA),
                 ),
               ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 18,
-                    left: 20,
-                    right: 20,
-                    child: _buildMosquePreviewPill(
-                      name: firstName,
-                      distance: _localizedDistance(1.8),
-                    ),
-                  ),
-                  Positioned(
-                    top: 66,
-                    left: 20,
-                    right: 20,
-                    child: _buildMosquePreviewPill(
-                      name: secondName,
-                      distance: _localizedDistance(3.2),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                child: Column(
+                  children: [
+                    if (hasData) ...[
+                      for (final item in items) ...[
+                        _buildMosquePreviewPill(
+                          name: item.name,
+                          distance: _localizedDistance(item.distanceKm),
+                        ),
+                        if (item != items.last) const SizedBox(height: 8),
+                      ],
+                    ] else ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 10, 4, 14),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.location_searching_rounded,
+                              size: 18,
+                              color: _textWeak,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _text(
+                                  'Tap to sync your nearest mosque list',
+                                  'Tap to sync your nearest mosque list',
+                                ),
+                                style: TextStyle(
+                                  color: _textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      decoration: BoxDecoration(
-                        color: _accentStrong,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        _text('Map preview', 'Map preview'),
-                        style: TextStyle(
-                          color: _isDarkTheme
-                              ? const Color(0xFF042A31)
-                              : Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                    ],
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _accentStrong,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          _text(
+                            hasData ? 'Updated list' : 'Find Mosque',
+                            hasData ? 'Updated list' : 'Find Mosque',
+                          ),
+                          style: TextStyle(
+                            color: _isDarkTheme
+                                ? const Color(0xFF042A31)
+                                : Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
+          if (_nearbyMosquePreviewUpdatedAt != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _text('Last synced from Find Mosque', 'Last synced from Find Mosque'),
+              style: TextStyle(
+                color: _textMuted,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );

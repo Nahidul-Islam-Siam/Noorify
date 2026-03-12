@@ -134,7 +134,8 @@ Completed (out of order by priority request):
   - Added in-app Admin Panel (role-gated) for create/edit/toggle/delete
   - Added home modal popup binding to active announcements
   - Added FCM client integration + `noorify_all` topic subscription
-  - Added `send_push` campaign flow + Cloud Function scaffold (`functions/`)
+  - Added free manual push flow via Firebase Console topic (`noorify_all`)
+  - Kept optional Cloud Function scaffold (`functions/`) for future paid automation
   - Added admin/notification guide doc (`docs/FIREBASE_ADMIN_NOTIFICATIONS.md`)
 - Full profile editing locally (photo, name, preferences)
   - Implemented Figma-style profile settings layout
@@ -220,6 +221,37 @@ Scope:
 3. Bookmarks and collections
 4. Offline manager
 5. Daily reflection
+
+## Deferred: App Size Optimization (Do After Feature + UI Lock)
+
+Status:
+- Deferred intentionally until feature set and UI are finalized.
+- Reason: avoid repeated optimization work while screens/features are still changing.
+
+Execution order (later):
+1. Lock baseline size report
+- Run `flutter build appbundle --release --target-platform android-arm64 --analyze-size`
+- Save report JSON for before/after comparison.
+
+2. Map module lite variant
+- Keep mosque list + external map open.
+- Remove embedded in-app map where possible.
+- Candidate packages to trim: `flutter_map`, `latlong2`.
+
+3. Location stack trim (optional)
+- If exact reverse-geocoded address is not required, reduce `geocoding` usage.
+
+4. Asset compression pass
+- Convert large PNG/JPG to optimized WebP.
+- Keep image dimensions to practical mobile targets.
+
+5. Optional backend/module split for first release
+- Keep must-have Firebase modules only.
+- Defer non-critical modules to later release.
+
+6. Re-measure and decide
+- Re-run analyze-size after each step.
+- Keep only optimizations that give real size win without UX regression.
 
 ## Release Checklist Template
 

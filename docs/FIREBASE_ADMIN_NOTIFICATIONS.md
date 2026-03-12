@@ -1,5 +1,5 @@
-# Noorify Firebase Admin + Notification Guide
-
+# Noorify Firebase Admin + Notification Guide (Free Plan)
+                                           
 Last updated: March 11, 2026
 
 ## 1) Current Setup
@@ -15,7 +15,9 @@ Last updated: March 11, 2026
 - Firebase Cloud Messaging (FCM) client is connected in app.
 - App subscribes devices to topic: `noorify_all`.
 - Foreground push is shown via local notification banner.
-- Admin panel now includes `Send push notification` toggle.
+- Admin panel uses free flow by default:
+  - in-app modal from Firestore
+  - manual broadcast push from Firebase Console (topic)
 
 ## 2) Notification Types
 
@@ -30,10 +32,10 @@ Last updated: March 11, 2026
 - User opens app -> Home checks active modal announcement.
 - If active and within time window, modal appears.
 
-### C) Push notification (FCM)
+### C) Push notification (FCM, free)
 
 - For app closed/background delivery.
-- Uses FCM topic broadcast (`noorify_all`).
+- Uses FCM topic broadcast (`noorify_all`) from Firebase Console.
 
 ## 3) Admin Account Meaning
 
@@ -75,10 +77,10 @@ If role is not admin, user cannot access Admin Panel.
   "show_modal": true,
   "send_push": false,
   "push_topic": "noorify_all",
-  "push_status": "pending | processing | sent | failed",
-  "push_requested_at": "timestamp or null",
-  "push_sent_at": "timestamp or null",
-  "push_error": "string or null",
+  "push_status": "optional (for future cloud automation)",
+  "push_requested_at": "optional timestamp",
+  "push_sent_at": "optional timestamp",
+  "push_error": "optional string",
   "start_at": "timestamp or null",
   "end_at": "timestamp or null",
   "created_by_uid": "admin uid",
@@ -96,13 +98,12 @@ If role is not admin, user cannot access Admin Panel.
 5. Turn on:
    - `active`
    - `show modal`
-   - `send push notification` (if push also needed)
 6. Set optional start/end window.
 7. Save.
 
 Result:
 - Modal will show on app open.
-- Push will be queued for backend trigger send.
+- Push is sent manually from Firebase Console when needed.
 
 ## 6) Recommended Firestore Rules
 
@@ -160,29 +161,12 @@ Result:
 - Background/closed app receives push.
 - Foreground app shows local banner.
 
-## 8) Campaign-Driven Push from Admin Panel
+## 8) Do We Need Cloud Functions?
 
-Cloud Function scaffold is added in repo:
+No. For now, free plan flow is enough:
 
-- `functions/index.js`
-- `functions/package.json`
+1. Admin creates/updates announcement in app.
+2. Users see modal on app open.
+3. If immediate alert needed, send topic push manually from Firebase Console.
 
-### Flow
-
-1. Admin panel save with `send_push = true`.
-2. Firestore trigger sees pending announcement.
-3. Function sends FCM topic push.
-4. Function updates:
-   - `push_status: sent` on success
-   - `push_status: failed` + `push_error` on failure
-
-## 9) Deploy Functions (One-time Setup)
-
-From project root:
-
-1. `cd functions`
-2. `npm install`
-3. `cd ..`
-4. `firebase deploy --only functions`
-
-After this, admin panel `send_push` toggle will trigger actual push delivery.
+Cloud Functions automation can be added later if you switch to paid plan.

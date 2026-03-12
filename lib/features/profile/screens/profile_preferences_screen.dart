@@ -795,8 +795,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 ValueListenableBuilder<String>(
                                   valueListenable: profileNameNotifier,
                                   builder: (context, name, _) {
+                                    final displayName = name.trim().isEmpty
+                                        ? _text('Add your name', 'Add your name')
+                                        : name.trim();
                                     return Text(
-                                      name,
+                                      displayName,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -854,7 +857,20 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ],
                       ),
                     ),
-                    _sectionLabel(
+                    _sectionLabel(_text('Nearby', 'Nearby')),
+                    _sectionCard(
+                      child: _rowTile(
+                        icon: Icons.mosque_rounded,
+                        title: _text('Find Mosque', 'Find Mosque'),
+                        subtitle: _text(
+                          'Open nearest mosque and sync recent results',
+                          'Open nearest mosque and sync recent results',
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pushNamed(RouteNames.findMosque);
+                        },
+                      ),
+                    ),                    _sectionLabel(
                       _text('General', 'Ã Â¦Â¸Ã Â¦Â¾Ã Â¦Â§Ã Â¦Â¾Ã Â¦Â°Ã Â¦Â£'),
                     ),
                     _sectionCard(
@@ -1324,3 +1340,4 @@ class ValueListenableBuilder2<A, B> extends StatelessWidget {
     );
   }
 }
+

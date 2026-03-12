@@ -157,7 +157,136 @@ class _SignupScreenState extends State<SignupScreen> {
     await saveAppPreferences();
   }
 
+  Future<
+    ({
+      String name,
+      AppLanguage language,
+      bool prayerAlerts,
+      bool mealAlerts,
+    })?
+  >
+  _promptGuestQuickSetup() async {
+    final controller = TextEditingController();
+    var language = appLanguageNotifier.value;
+    var prayerAlerts = prayerAlertsEnabledNotifier.value;
+    var mealAlerts =
+        sehriAlertEnabledNotifier.value || iftarAlertEnabledNotifier.value;
+
+    final result = await showDialog<
+      ({String name, AppLanguage language, bool prayerAlerts, bool mealAlerts})?
+    >(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              title: const Text('Guest Quick Setup'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'You can set these now and change later from Profile.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: controller,
+                      textInputAction: TextInputAction.next,
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Your name (optional)',
+                        hintText: 'e.g. Siam',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<AppLanguage>(
+                      initialValue: language,
+                      decoration: const InputDecoration(labelText: 'Language'),
+                      items: const [
+                        DropdownMenuItem(
+                          value: AppLanguage.bangla,
+                          child: Text('Bangla'),
+                        ),
+                        DropdownMenuItem(
+                          value: AppLanguage.english,
+                          child: Text('English'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setDialogState(() => language = value);
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                    SwitchListTile(
+                      value: prayerAlerts,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Adhan / Prayer alert'),
+                      subtitle: const Text('Play prayer notifications'),
+                      onChanged: (value) =>
+                          setDialogState(() => prayerAlerts = value),
+                    ),
+                    SwitchListTile(
+                      value: mealAlerts,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Sehri / Iftar alert'),
+                      subtitle: const Text('Meal time reminder notifications'),
+                      onChanged: (value) =>
+                          setDialogState(() => mealAlerts = value),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(null),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop((
+                    name: '',
+                    language: appLanguageNotifier.value,
+                    prayerAlerts: prayerAlertsEnabledNotifier.value,
+                    mealAlerts:
+                        sehriAlertEnabledNotifier.value ||
+                        iftarAlertEnabledNotifier.value,
+                  )),
+                  child: const Text('Skip'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop((
+                    name: controller.text.trim(),
+                    language: language,
+                    prayerAlerts: prayerAlerts,
+                    mealAlerts: mealAlerts,
+                  )),
+                  child: const Text('Continue'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    controller.dispose();
+    return result;
+  }
+
   Future<void> _continueWithoutSignIn() async {
+    final setup = await _promptGuestQuickSetup();
+    if (setup == null) return;
+    if (setup.name.trim().isNotEmpty) {
+      profileNameNotifier.value = setup.name.trim();
+    }
+    appLanguageNotifier.value = setup.language;
+    translationLanguageNotifier.value = setup.language == AppLanguage.bangla
+        ? 'Bangla'
+        : 'English';
+    prayerAlertsEnabledNotifier.value = setup.prayerAlerts;
+    sehriAlertEnabledNotifier.value = setup.mealAlerts;
+    iftarAlertEnabledNotifier.value = setup.mealAlerts;
     await _setSkipAuthGate(true);
     if (!mounted) return;
     Navigator.of(

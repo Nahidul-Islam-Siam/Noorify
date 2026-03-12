@@ -50,6 +50,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   String? _selectedPrayer;
   final QuranLastReadService _lastReadService = QuranLastReadService();
   final QuranApiService _quranApiService = QuranApiService();
+  final MosqueResultsCacheService _mosqueResultsCacheService =
+      MosqueResultsCacheService();
   final Dio _prayerApi = Dio(
     BaseOptions(
       baseUrl: 'https://api.aladhan.com',
@@ -66,6 +68,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     ActivityItem(title: 'Alms', done: 4, total: 10),
     ActivityItem(title: 'Recite the Al Quran', done: 8, total: 10),
   ];
+  List<MosqueItem> _nearbyMosquePreview = const [];
+  DateTime? _nearbyMosquePreviewUpdatedAt;
   bool _announcementModalChecked = false;
   bool _announcementModalFetchInProgress = false;
   static String? _lastShownAnnouncementId;
@@ -77,6 +81,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     );
     appLanguageNotifier.addListener(_onLanguageChanged);
     useDeviceLocationNotifier.addListener(_onUseDeviceLocationChanged);
+    profileLocationNotifier.addListener(_onProfileLocationChanged);
     prayerAlertsEnabledNotifier.addListener(_onPrayerAlertToggleChanged);
     sehriAlertEnabledNotifier.addListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.addListener(_onIftarAlertToggleChanged);
@@ -84,6 +89,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     _initializeMiniCompass();
     _loadPrayerData();
     _loadLastReadCard();
+    unawaited(_loadNearbyMosquePreview());
     unawaited(_showAnnouncementModalIfNeeded());
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -101,6 +107,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   void disposeDailyActivityController() {
     appLanguageNotifier.removeListener(_onLanguageChanged);
     useDeviceLocationNotifier.removeListener(_onUseDeviceLocationChanged);
+    profileLocationNotifier.removeListener(_onProfileLocationChanged);
     prayerAlertsEnabledNotifier.removeListener(_onPrayerAlertToggleChanged);
     sehriAlertEnabledNotifier.removeListener(_onSehriAlertToggleChanged);
     iftarAlertEnabledNotifier.removeListener(_onIftarAlertToggleChanged);
@@ -131,6 +138,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
       final announcement = await AnnouncementService.instance
           .fetchLatestActiveModalAnnouncement();
       if (!mounted) return;
+      if (!_isCurrentRouteActive()) return;
       _announcementModalChecked = true;
       if (announcement == null) return;
       if (_lastShownAnnouncementId == announcement.id) return;
@@ -138,6 +146,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
+        if (!_isCurrentRouteActive()) return;
         _openAnnouncementDialog(announcement);
       });
     } catch (e) {
@@ -148,6 +157,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   }
 
   void _openAnnouncementDialog(AnnouncementItem item) {
+    if (!_isCurrentRouteActive()) return;
     final title = item.localizedTitle(_isBangla);
     final message = item.localizedMessage(_isBangla);
     final posterUrl = item.posterUrl?.trim();
@@ -206,6 +216,11 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
         );
       },
     );
+  }
+
+  bool _isCurrentRouteActive() {
+    final route = ModalRoute.of(context);
+    return route?.isCurrent ?? true;
   }
 
   bool _isNetworkImageUrl(String? value) {
@@ -271,6 +286,13 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
 
   void _onLanguageChanged() {
     _safeSetState(() {});
+  }
+
+  void _onProfileLocationChanged() {
+    if (useDeviceLocationNotifier.value) return;
+    final label = _profileOrFallbackLocationLabel();
+    if (_locationLabel == label) return;
+    _safeSetState(() => _locationLabel = label);
   }
 
   Future<void> _onUseDeviceLocationChanged() async {
@@ -600,6 +622,33 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     await _loadLastReadCard();
   }
 
+  Future<void> _openFindMosque() async {
+    await Navigator.of(context).pushNamed(RouteNames.findMosque);
+    if (!mounted) return;
+    await _loadNearbyMosquePreview();
+  }
+
+  Future<void> _loadNearbyMosquePreview() async {
+    final cached = await _mosqueResultsCacheService.load();
+    if (!mounted) return;
+
+    if (cached == null || cached.items.isEmpty) {
+      _safeSetState(() {
+        _nearbyMosquePreview = const [];
+        _nearbyMosquePreviewUpdatedAt = null;
+      });
+      return;
+    }
+
+    final topItems = [...cached.items]..sort(
+      (a, b) => a.distanceKm.compareTo(b.distanceKm),
+    );
+    _safeSetState(() {
+      _nearbyMosquePreview = topItems.take(3).toList(growable: false);
+      _nearbyMosquePreviewUpdatedAt = cached.updatedAt;
+    });
+  }
+
   Future<void> _scheduleMealNotification({
     required int id,
     required String channelId,
@@ -912,7 +961,13 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     _latitude = _baitulMukarramLat;
     _longitude = _baitulMukarramLng;
     _updateHomeQiblaBearing(_baitulMukarramLat, _baitulMukarramLng);
-    _safeSetState(() => _locationLabel = _baitulMukarramLabel);
+    _safeSetState(() => _locationLabel = _profileOrFallbackLocationLabel());
+  }
+
+  String _profileOrFallbackLocationLabel() {
+    final profileLocation = profileLocationNotifier.value.trim();
+    if (profileLocation.isNotEmpty) return profileLocation;
+    return _baitulMukarramLabel;
   }
 
   Future<void> _resolveLocationLabel(double lat, double lng) async {
@@ -928,6 +983,10 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
       final area = place.administrativeArea ?? place.country ?? '';
       final label = area.isNotEmpty ? '$city, $area' : city;
       _safeSetState(() => _locationLabel = label);
+      if (profileLocationNotifier.value != label) {
+        profileLocationNotifier.value = label;
+        await saveAppPreferences();
+      }
     } catch (_) {
       _safeSetState(() => _locationLabel = 'Current location');
     }
