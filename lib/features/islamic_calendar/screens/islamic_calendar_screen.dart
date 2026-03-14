@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:adhan_dart/adhan_dart.dart';
 import 'package:dio/dio.dart';
@@ -101,7 +102,47 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
 
   bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
 
-  String _text(String en, String bn) => _isBangla ? bn : en;
+  bool _looksMojibake(String value) {
+    for (final unit in value.codeUnits) {
+      if (unit == 0x00C3 ||
+          unit == 0x00C2 ||
+          unit == 0x00E0 ||
+          unit == 0x00D8 ||
+          unit == 0x00D9 ||
+          unit == 0x00D0 ||
+          unit == 0x00E2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _repairMojibake(String value) {
+    var output = value;
+    for (var i = 0; i < 4; i++) {
+      if (!_looksMojibake(output)) break;
+      try {
+        output = utf8.decode(latin1.encode(output));
+      } catch (_) {
+        break;
+      }
+    }
+    return output;
+  }
+
+  bool _containsBangla(String value) {
+    return RegExp(r'[\u0980-\u09FF]').hasMatch(value);
+  }
+
+  String _bn(String value, {required String fallback}) {
+    final repaired = _repairMojibake(value);
+    if (_containsBangla(repaired) && !_looksMojibake(repaired)) {
+      return repaired;
+    }
+    return fallback;
+  }
+
+  String _text(String en, String bn) => _isBangla ? _bn(bn, fallback: en) : en;
 
   @override
   void initState() {
@@ -217,10 +258,14 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
   String _digits(String input) => _isBangla ? _toBanglaDigits(input) : input;
 
   String _gregorianMonth(int month) =>
-      _isBangla ? _monthsBn[month - 1] : _monthsEn[month - 1];
+      _isBangla
+      ? _bn(_monthsBn[month - 1], fallback: _monthsEn[month - 1])
+      : _monthsEn[month - 1];
 
   String _weekday(int index) =>
-      _isBangla ? _weekdaysBn[index] : _weekdaysEn[index];
+      _isBangla
+      ? _bn(_weekdaysBn[index], fallback: _weekdaysEn[index])
+      : _weekdaysEn[index];
 
   String _hijriMonth(String english) {
     if (!_isBangla) return english;
@@ -238,7 +283,9 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
       "Dhu al-Qi'dah": 'জিলকদ',
       'Dhu al-Hijjah': 'জিলহজ',
     };
-    return map[english] ?? english;
+    final bangla = map[english];
+    if (bangla == null) return english;
+    return _bn(bangla, fallback: english);
   }
 
   String _formatGregorian(DateTime date) {

@@ -2,13 +2,50 @@ part of '../screens/daily_activity_screen.dart';
 
 mixin DailyActivityViewMixin
     on State<DailyActivityScreen>, DailyActivityControllerMixin {
-  String _text(String english, String bangla) => _isBangla ? bangla : english;
+  bool _looksMojibake(String value) {
+    for (final unit in value.codeUnits) {
+      if (unit == 0x00C3 ||
+          unit == 0x00C2 ||
+          unit == 0x00E0 ||
+          unit == 0x00D8 ||
+          unit == 0x00D9 ||
+          unit == 0x00D0 ||
+          unit == 0x00E2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _repairMojibake(String value) {
+    var output = value;
+    for (var i = 0; i < 2; i++) {
+      if (!_looksMojibake(output)) break;
+      try {
+        output = utf8.decode(latin1.encode(output));
+      } catch (_) {
+        break;
+      }
+    }
+    return output;
+  }
+
+  bool _containsBangla(String value) {
+    return RegExp(r'[\u0980-\u09FF]').hasMatch(value);
+  }
+
+  String _text(String english, String bangla) {
+    if (!_isBangla) return english;
+    final repaired = _repairMojibake(bangla);
+    if (_looksMojibake(repaired)) return english;
+    return _containsBangla(repaired) ? repaired : english;
+  }
 
   String _greetingText() {
     final hour = _now.hour;
-    if (hour < 12) return _text('Assalamu Alaikum,', 'Assalamu Alaikum,');
-    if (hour < 17) return _text('Good Afternoon,', 'Good Afternoon,');
-    return _text('Good Evening,', 'Good Evening,');
+    if (hour < 12) return _text('Assalamu Alaikum,', 'আসসালামু আলাইকুম,');
+    if (hour < 17) return _text('Good Afternoon,', 'শুভ অপরাহ্ন,');
+    return _text('Good Evening,', 'শুভ সন্ধ্যা,');
   }
 
   String _profileDisplayName([String? rawName]) {
@@ -16,7 +53,8 @@ mixin DailyActivityViewMixin
     return value;
   }
 
-  bool _hasProfileName([String? rawName]) => _profileDisplayName(rawName).isNotEmpty;
+  bool _hasProfileName([String? rawName]) =>
+      _profileDisplayName(rawName).isNotEmpty;
 
   String _profileInitial([String? rawName]) {
     final name = _profileDisplayName(rawName);
@@ -27,7 +65,8 @@ mixin DailyActivityViewMixin
     String? encodedPhoto,
     String? remotePhotoUrl,
   }) {
-    final encoded = (encodedPhoto ?? profilePhotoBase64Notifier.value ?? '').trim();
+    final encoded = (encodedPhoto ?? profilePhotoBase64Notifier.value ?? '')
+        .trim();
     if (encoded.isNotEmpty) {
       try {
         return MemoryImage(base64Decode(encoded));
@@ -46,7 +85,7 @@ mixin DailyActivityViewMixin
 
   String _activePrayerShortCountdown() {
     final value = _formattedActiveRemaining();
-    return _isBangla ? '$value left' : 'in $value';
+    return _isBangla ? '$value \u09ac\u09be\u0995\u09bf' : 'in $value';
   }
 
   String _localizedCount(int value) {
@@ -61,13 +100,6 @@ mixin DailyActivityViewMixin
 
   String _prayerMeridiem(String prayer) {
     return prayer == 'Fajr' ? 'AM' : 'PM';
-  }
-
-  Duration _remainingToIftar() {
-    final target = _nextIftarAt;
-    if (target == null) return Duration.zero;
-    final remaining = target.difference(_now);
-    return remaining.isNegative ? Duration.zero : remaining;
   }
 
   bool get _isDarkTheme => Theme.of(context).brightness == Brightness.dark;
@@ -343,7 +375,7 @@ mixin DailyActivityViewMixin
                       Icon(Icons.refresh_rounded, size: 13, color: _accentSoft),
                       const SizedBox(width: 4),
                       Text(
-                        _text('Refresh', 'Refresh'),
+                        _text('Refresh', 'রিফ্রেশ'),
                         style: TextStyle(
                           color: _accentSoft,
                           fontSize: 11,
@@ -413,7 +445,7 @@ mixin DailyActivityViewMixin
           Row(
             children: [
               Text(
-                _text('Prayer Times', 'Prayer Times'),
+                _text('Prayer Times', 'নামাজের সময়'),
                 style: TextStyle(
                   color: _textPrimary,
                   fontSize: 14,
@@ -421,14 +453,28 @@ mixin DailyActivityViewMixin
                 ),
               ),
               const Spacer(),
-              Text(
-                _isShowingActivePrayer
-                    ? '${_localizedActiveRemainingLabel()}: ${_activePrayerShortCountdown()}'
-                    : '${_localizedPrayerTimeLabel()}: ${_localizedPrayerTime(_prayerTimes[_displayPrayer] ?? '--:--')}',
-                style: TextStyle(
-                  color: _accentStrong,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _isDarkTheme
+                      ? const Color(0x3320D3BF)
+                      : const Color(0x1F1EA8B8),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: _isDarkTheme
+                        ? const Color(0x4D8AE5D9)
+                        : const Color(0x4D54C4CD),
+                  ),
+                ),
+                child: Text(
+                  _isShowingActivePrayer
+                      ? '${_localizedActiveRemainingLabel()}: ${_activePrayerShortCountdown()}'
+                      : '${_localizedPrayerTimeLabel()}: ${_localizedPrayerTime(_prayerTimes[_displayPrayer] ?? '--:--')}',
+                  style: TextStyle(
+                    color: _accentStrong,
+                    fontSize: 10.8,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -442,14 +488,33 @@ mixin DailyActivityViewMixin
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
+          Row(
+            children: [
+              Icon(
+                Icons.access_time_filled_rounded,
+                size: 14,
+                color: _accentSoft,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                '${_localizedPrayerName(_displayPrayer)}: ${_localizedPrayerTime(_prayerTimes[_displayPrayer] ?? '--:--')}',
+                style: TextStyle(
+                  color: _textSecondary,
+                  fontSize: 11.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
           SizedBox(
-            height: 98,
+            height: 104,
             child: PageView.builder(
               controller: _prayerPageController,
-              itemCount: _prayerOrder.length,
+              itemCount: _prayerCarouselItemsCount,
               onPageChanged: (index) {
-                final prayer = _prayerOrder[index];
+                final prayer = _prayerForCarouselIndex(index);
                 if (prayer == _activePrayer) {
                   if (_selectedPrayer != null) {
                     setState(() => _selectedPrayer = null);
@@ -461,9 +526,10 @@ mixin DailyActivityViewMixin
                 }
               },
               itemBuilder: (context, index) {
+                final prayer = _prayerForCarouselIndex(index);
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: _buildPrayerTimeChip(_prayerOrder[index]),
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: _buildPrayerTimeChip(prayer, pageIndex: index),
                 );
               },
             ),
@@ -482,7 +548,7 @@ mixin DailyActivityViewMixin
                   _syncPrayerPageToActive(animate: true);
                 },
                 icon: const Icon(Icons.my_location_rounded, size: 15),
-                label: Text(_text('Back to current', 'Back to current')),
+                label: Text(_text('Back to current', 'বর্তমানে ফিরুন')),
               ),
             ),
           ],
@@ -491,15 +557,19 @@ mixin DailyActivityViewMixin
     );
   }
 
-  Widget _buildPrayerTimeChip(String prayer) {
+  Widget _buildPrayerTimeChip(String prayer, {required int pageIndex}) {
     final isActive = prayer == _displayPrayer;
     final time = _localizedPrayerTime(_prayerTimes[prayer] ?? '--:--');
+    final icon = _prayerIcon(prayer);
 
     return InkWell(
       onTap: () {
         setState(() => _selectedPrayer = prayer);
-        final targetIndex = _prayerOrder.indexOf(prayer);
-        if (targetIndex != -1 && _prayerPageController.hasClients) {
+        final around = _prayerPageController.hasClients
+            ? (_prayerPageController.page?.round() ?? pageIndex)
+            : pageIndex;
+        final targetIndex = _carouselIndexForPrayer(prayer, around: around);
+        if (_prayerPageController.hasClients) {
           _prayerPageController.animateToPage(
             targetIndex,
             duration: const Duration(milliseconds: 240),
@@ -508,84 +578,136 @@ mixin DailyActivityViewMixin
         }
       },
       borderRadius: BorderRadius.circular(12),
-      child: AnimatedContainer(
+      child: AnimatedScale(
+        scale: isActive ? 1.02 : 1,
         duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: isActive
-              ? const LinearGradient(
-                  colors: [Color(0xFF1FD5C0), Color(0xFF1EA8B8)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: isActive
-              ? null
-              : (_isDarkTheme
-                    ? const Color(0xFF162433)
-                    : const Color(0xFFE8F2F8)),
-          border: Border.all(
+        curve: Curves.easeOut,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: isActive
+                ? const LinearGradient(
+                    colors: [Color(0xFF1FD5C0), Color(0xFF1EA8B8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
             color: isActive
-                ? const Color(0x88A9FFF4)
+                ? null
                 : (_isDarkTheme
-                      ? const Color(0x334E728E)
-                      : const Color(0xFFCADCE9)),
+                      ? const Color(0xFF162433)
+                      : const Color(0xFFE8F2F8)),
+            border: Border.all(
+              color: isActive
+                  ? const Color(0x88A9FFF4)
+                  : (_isDarkTheme
+                        ? const Color(0x334E728E)
+                        : const Color(0xFFCADCE9)),
+            ),
+            boxShadow: isActive
+                ? const [
+                    BoxShadow(
+                      color: Color(0x4D1FD5C0),
+                      blurRadius: 16,
+                      spreadRadius: 0.3,
+                      offset: Offset(0, 8),
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: isActive
-              ? const [
-                  BoxShadow(
-                    color: Color(0x4D1FD5C0),
-                    blurRadius: 16,
-                    offset: Offset(0, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 12.5,
+                    color: isActive
+                        ? const Color(0xDD032F35)
+                        : (_isDarkTheme
+                              ? const Color(0xFF9BC1D8)
+                              : const Color(0xFF56758A)),
                   ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _localizedPrayerName(prayer),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isActive
-                    ? const Color(0xFF032F35)
-                    : (_isDarkTheme ? Colors.white : const Color(0xFF214259)),
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      _localizedPrayerName(prayer),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isActive
+                            ? const Color(0xFF032F35)
+                            : (_isDarkTheme
+                                  ? Colors.white
+                                  : const Color(0xFF214259)),
+                        fontSize: 10.8,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              time,
-              style: TextStyle(
-                color: isActive
-                    ? const Color(0xFF032F35)
-                    : (_isDarkTheme ? Colors.white : const Color(0xFF214259)),
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                height: 1,
+              const SizedBox(height: 5),
+              Text(
+                time,
+                style: TextStyle(
+                  color: isActive
+                      ? const Color(0xFF032F35)
+                      : (_isDarkTheme ? Colors.white : const Color(0xFF214259)),
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
               ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              _prayerMeridiem(prayer),
-              style: TextStyle(
-                color: isActive
-                    ? const Color(0xDD032F35)
-                    : (_isDarkTheme
-                          ? const Color(0xFF86A8BE)
-                          : const Color(0xFF5D7C91)),
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  Text(
+                    _prayerMeridiem(prayer),
+                    style: TextStyle(
+                      color: isActive
+                          ? const Color(0xDD032F35)
+                          : (_isDarkTheme
+                                ? const Color(0xFF86A8BE)
+                                : const Color(0xFF5D7C91)),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (isActive)
+                    const Icon(
+                      Icons.circle,
+                      size: 6.5,
+                      color: Color(0xDD032F35),
+                    ),
+                ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  IconData _prayerIcon(String prayer) {
+    switch (prayer) {
+      case 'Fajr':
+        return Icons.wb_twilight_rounded;
+      case 'Zuhr':
+        return Icons.wb_sunny_rounded;
+      case 'Asr':
+        return Icons.brightness_5_rounded;
+      case 'Maghrib':
+        return Icons.bedtime_rounded;
+      case 'Isha':
+        return Icons.nights_stay_rounded;
+      default:
+        return Icons.schedule_rounded;
+    }
   }
 
   double? _miniCompassDelta() {
@@ -769,7 +891,7 @@ mixin DailyActivityViewMixin
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _text('Qibla', 'Qibla'),
+                    _text('Qibla', 'কিবলা'),
                     style: TextStyle(
                       color: _textPrimary,
                       fontSize: 13,
@@ -780,7 +902,7 @@ mixin DailyActivityViewMixin
                   Center(child: _buildMiniCompassDial()),
                   const SizedBox(height: 8),
                   Text(
-                    _text('Qibla Direction: ', 'Qibla Direction: ') +
+                    _text('Qibla Direction: ', 'কিবলার দিক: ') +
                         _miniQiblaValueText(),
                     style: TextStyle(
                       color: _textMuted,
@@ -800,73 +922,77 @@ mixin DailyActivityViewMixin
   }
 
   Widget _buildIftarCountdownCard() {
-    final remaining = _remainingToIftar();
-    final days = remaining.inDays;
-    final hours = remaining.inHours.remainder(24);
-    final minutes = remaining.inMinutes.remainder(60);
-
     return _buildGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _text('Iftar Countdown', 'Iftar Countdown'),
+            _text(
+              'Sehri & Iftar',
+              '\u09b8\u09c7\u09b9\u09b0\u09bf \u0993 \u0987\u09ab\u09a4\u09be\u09b0',
+            ),
             style: TextStyle(
               color: _textPrimary,
               fontSize: 13,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: _buildCountdownChip(
-                  value: _localizedCount(days),
-                  label: _text('Days', 'Days'),
+          const SizedBox(height: 9),
+          Container(
+            decoration: BoxDecoration(
+              color: _surfaceSubtle,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _surfaceBorder),
+            ),
+            child: Column(
+              children: [
+                _buildMealInfoRow(
+                  icon: Icons.free_breakfast_rounded,
+                  title: _localizedNextSehriLabel(),
+                  time: _localizedTimeOrPlaceholder(_nextSehriAt),
+                  showDivider: true,
                 ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _buildCountdownChip(
-                  value: _localizedCount(hours),
-                  label: _text('Hours', 'Hours'),
+                _buildMealInfoRow(
+                  icon: Icons.dinner_dining_rounded,
+                  title: _localizedNextIftarLabel(),
+                  time: _localizedTimeOrPlaceholder(_nextIftarAt),
+                  highlight: true,
                 ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: _buildCountdownChip(
-                  value: _localizedCount(minutes),
-                  label: _text('Min', 'Min'),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 10),
-          Text(
-            '${_localizedNextSehriLabel()} (${_localizedDawnPrefix()}): ${_localizedTimeOrPlaceholder(_nextSehriAt)}',
-            style: TextStyle(
-              color: _textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isDarkTheme
+                  ? const Color(0x1F1FD5C0)
+                  : const Color(0x1A1EA8B8),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _isDarkTheme
+                    ? const Color(0x339DEFE5)
+                    : const Color(0x3351BFC9),
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_localizedNextIftarLabel()} (${_localizedSunsetPrefix()}): ${_localizedTimeOrPlaceholder(_nextIftarAt)}',
-            style: TextStyle(
-              color: _textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_localizedRemainingLabel()}: ${_formattedIftarRemaining()}',
-            style: TextStyle(
-              color: _accentStrong,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+            child: Row(
+              children: [
+                Icon(Icons.timelapse_rounded, size: 15, color: _accentSoft),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    '${_localizedRemainingLabel()}: ${_formattedIftarRemaining()}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _accentStrong,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -874,32 +1000,63 @@ mixin DailyActivityViewMixin
     );
   }
 
-  Widget _buildCountdownChip({required String value, required String label}) {
+  Widget _buildMealInfoRow({
+    required IconData icon,
+    required String title,
+    required String time,
+    bool highlight = false,
+    bool showDivider = false,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 9),
       decoration: BoxDecoration(
-        color: _surfaceSubtle,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _surfaceBorder),
+        color: highlight
+            ? (_isDarkTheme ? const Color(0x1F1FD5C0) : const Color(0x1A1EA8B8))
+            : Colors.transparent,
+        borderRadius: highlight ? BorderRadius.circular(10) : BorderRadius.zero,
+        border: showDivider
+            ? Border(bottom: BorderSide(color: _surfaceBorder))
+            : (highlight
+                  ? Border.all(
+                      color: _isDarkTheme
+                          ? const Color(0x339DEFE5)
+                          : const Color(0x3351BFC9),
+                    )
+                  : null),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              color: _textPrimary,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              height: 1,
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: _isDarkTheme
+                  ? const Color(0x332FD8C7)
+                  : const Color(0x221EA8B8),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 17, color: _accentSoft),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: _textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(width: 6),
           Text(
-            label,
+            time,
             style: TextStyle(
-              color: _textWeak,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
+              color: highlight ? _accentStrong : _textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -918,7 +1075,7 @@ mixin DailyActivityViewMixin
           Row(
             children: [
               Text(
-                _text('Nearby Mosques', 'Nearby Mosques'),
+                _text('Nearby Mosques', 'নিকটবর্তী মসজিদ'),
                 style: TextStyle(
                   color: _textPrimary,
                   fontSize: 15,
@@ -933,7 +1090,7 @@ mixin DailyActivityViewMixin
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   visualDensity: VisualDensity.compact,
                 ),
-                child: Text(_text('View all', 'View all')),
+                child: Text(_text('View all', 'সব দেখুন')),
               ),
             ],
           ),
@@ -985,7 +1142,7 @@ mixin DailyActivityViewMixin
                               child: Text(
                                 _text(
                                   'Tap to sync your nearest mosque list',
-                                  'Tap to sync your nearest mosque list',
+                                  'নিকটবর্তী মসজিদের তালিকা সিঙ্ক করতে ট্যাপ করুন',
                                 ),
                                 style: TextStyle(
                                   color: _textSecondary,
@@ -1013,7 +1170,7 @@ mixin DailyActivityViewMixin
                         child: Text(
                           _text(
                             hasData ? 'Updated list' : 'Find Mosque',
-                            hasData ? 'Updated list' : 'Find Mosque',
+                            hasData ? 'আপডেটেড তালিকা' : 'মসজিদ খুঁজুন',
                           ),
                           style: TextStyle(
                             color: _isDarkTheme
@@ -1033,7 +1190,10 @@ mixin DailyActivityViewMixin
           if (_nearbyMosquePreviewUpdatedAt != null) ...[
             const SizedBox(height: 6),
             Text(
-              _text('Last synced from Find Mosque', 'Last synced from Find Mosque'),
+              _text(
+                'Last synced from Find Mosque',
+                'Find Mosque থেকে সর্বশেষ সিঙ্ক',
+              ),
               style: TextStyle(
                 color: _textMuted,
                 fontSize: 10.5,
@@ -1091,48 +1251,196 @@ mixin DailyActivityViewMixin
     );
   }
 
+  Future<void> _openZakatCalculator() async {
+    final uri = Uri.parse('https://ilmifytech.agency/zakat');
+
+    final launchedInApp = await launchUrl(
+      uri,
+      mode: LaunchMode.inAppBrowserView,
+      browserConfiguration: const BrowserConfiguration(showTitle: true),
+    );
+    if (launchedInApp) return;
+
+    final launchedWebView = await launchUrl(
+      uri,
+      mode: LaunchMode.inAppWebView,
+      webViewConfiguration: const WebViewConfiguration(
+        enableJavaScript: true,
+        enableDomStorage: true,
+      ),
+    );
+    if (launchedWebView) return;
+
+    final launchedExternal = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launchedExternal && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _text(
+              'Unable to open Zakat calculator',
+              'যাকাত ক্যালকুলেটর খোলা যাচ্ছে না',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _buildQuickActions() {
     final actions =
         <({String titleEn, String titleBn, IconData icon, String route})>[
           (
             titleEn: 'Quran',
-            titleBn: 'Quran',
-            icon: Icons.menu_book_rounded,
+            titleBn: '\u0995\u09c1\u09b0\u0986\u09a8',
+            icon: Icons.auto_stories_rounded,
             route: RouteNames.quran,
           ),
           (
             titleEn: 'Hadith',
-            titleBn: 'Hadith',
-            icon: Icons.format_quote_rounded,
+            titleBn: '\u09b9\u09be\u09a6\u09bf\u09b8',
+            icon: Icons.menu_book_rounded,
             route: RouteNames.hadith,
           ),
           (
             titleEn: 'Dua',
-            titleBn: 'Dua',
-            icon: Icons.pan_tool_alt_rounded,
+            titleBn: '\u09a6\u09cb\u09af\u09bc\u09be',
+            icon: Icons.volunteer_activism_rounded,
             route: RouteNames.dua,
           ),
           (
             titleEn: 'Asma',
-            titleBn: 'Asma',
-            icon: Icons.auto_stories_rounded,
+            titleBn: '\u0986\u09b8\u09ae\u09be',
+            icon: Icons.nightlight_round,
             route: RouteNames.asma,
           ),
         ];
 
-    return Row(
-      children: [
-        for (int i = 0; i < actions.length; i++) ...[
-          Expanded(
-            child: _buildQuickActionCard(
-              title: _text(actions[i].titleEn, actions[i].titleBn),
-              icon: actions[i].icon,
-              onTap: () => Navigator.of(context).pushNamed(actions[i].route),
+    final menuLinks =
+        <({String titleEn, String titleBn, IconData icon, VoidCallback onTap})>[
+          (
+            titleEn: 'Calendar',
+            titleBn:
+                '\u0995\u09cd\u09af\u09be\u09b2\u09c7\u09a8\u09cd\u09a1\u09be\u09b0',
+            icon: Icons.calendar_month_rounded,
+            onTap: () =>
+                Navigator.of(context).pushNamed(RouteNames.islamicCalendar),
+          ),
+          (
+            titleEn: 'Find Mosque',
+            titleBn: '\u09ae\u09b8\u099c\u09bf\u09a6',
+            icon: Icons.location_city_rounded,
+            onTap: () => Navigator.of(context).pushNamed(RouteNames.findMosque),
+          ),
+          (
+            titleEn: 'Qibla',
+            titleBn: '\u0995\u09bf\u09ac\u09b2\u09be',
+            icon: Icons.near_me_rounded,
+            onTap: () =>
+                Navigator.of(context).pushNamed(RouteNames.prayerCompass),
+          ),
+          (
+            titleEn: 'Prayer',
+            titleBn: '\u09a8\u09be\u09ae\u09be\u099c',
+            icon: Icons.schedule_rounded,
+            onTap: () =>
+                Navigator.of(context).pushNamed(RouteNames.prayerTimes),
+          ),
+          (
+            titleEn: 'Tasbih',
+            titleBn: '\u09a4\u09be\u09b8\u09ac\u09bf\u09b9',
+            icon: Icons.exposure_plus_1_rounded,
+            onTap: () => Navigator.of(context).pushNamed(RouteNames.tasbih),
+          ),
+          (
+            titleEn: 'Zakat',
+            titleBn: '\u09af\u09be\u0995\u09be\u09a4',
+            icon: Icons.savings_rounded,
+            onTap: () => unawaited(_openZakatCalculator()),
+          ),
+          (
+            titleEn: 'Settings',
+            titleBn: '\u09b8\u09c7\u099f\u09bf\u0982\u09b8',
+            icon: Icons.settings_rounded,
+            onTap: () =>
+                Navigator.of(context).pushNamed(RouteNames.preferences),
+          ),
+        ];
+
+    return _buildGlassCard(
+      padding: const EdgeInsets.fromLTRB(11, 10, 11, 11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                _text(
+                  'Quick Menu',
+                  '\u09a6\u09cd\u09b0\u09c1\u09a4 \u09ae\u09c7\u09a8\u09c1',
+                ),
+                style: TextStyle(
+                  color: _textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: _accentStrong,
+                ),
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(RouteNames.discover),
+                icon: const Icon(Icons.grid_view_rounded, size: 15),
+                label: Text(
+                  _text(
+                    'Open Discover',
+                    '\u09a1\u09bf\u09b8\u0995\u09ad\u09be\u09b0',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              for (int i = 0; i < actions.length; i++) ...[
+                Expanded(
+                  child: _buildQuickActionCard(
+                    title: _text(actions[i].titleEn, actions[i].titleBn),
+                    icon: actions[i].icon,
+                    onTap: () =>
+                        Navigator.of(context).pushNamed(actions[i].route),
+                  ),
+                ),
+                if (i != actions.length - 1) const SizedBox(width: 7),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              children: [
+                for (int i = 0; i < menuLinks.length; i++) ...[
+                  _buildMenuLinkChip(
+                    title: _text(menuLinks[i].titleEn, menuLinks[i].titleBn),
+                    icon: menuLinks[i].icon,
+                    onTap: menuLinks[i].onTap,
+                  ),
+                  if (i != menuLinks.length - 1) const SizedBox(width: 7),
+                ],
+              ],
             ),
           ),
-          if (i != actions.length - 1) const SizedBox(width: 10),
         ],
-      ],
+      ),
     );
   }
 
@@ -1147,7 +1455,7 @@ mixin DailyActivityViewMixin
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
@@ -1163,24 +1471,69 @@ mixin DailyActivityViewMixin
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 34,
+                height: 34,
                 decoration: BoxDecoration(
                   color: _surfaceStrong,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: _accentSoft, size: 20),
+                child: Icon(icon, color: _accentSoft, size: 19),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: _textPrimary,
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuLinkChip({
+    required String title,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: _isDarkTheme
+                ? const Color(0xFF162433)
+                : const Color(0xF8FFFFFF),
+            border: Border.all(color: _surfaceBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: _accentSoft),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  color: _textPrimary,
+                  fontSize: 11.2,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 10,
+                color: _textMuted,
               ),
             ],
           ),
@@ -1268,7 +1621,7 @@ mixin DailyActivityViewMixin
           Row(
             children: [
               Text(
-                _text('Daily Activity', 'Daily Activity'),
+                _text('Daily Activity', 'দৈনিক কার্যক্রম'),
                 style: TextStyle(
                   color: _textPrimary,
                   fontSize: 14,

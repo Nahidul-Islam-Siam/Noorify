@@ -89,7 +89,14 @@ class DiscoverScreen extends StatelessWidget {
 
           if (!launchedExternal && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Unable to open Zakat calculator')),
+              SnackBar(
+                content: Text(
+                  t(
+                    'Unable to open Zakat calculator',
+                    'যাকাত ক্যালকুলেটর খোলা যাচ্ছে না',
+                  ),
+                ),
+              ),
             );
           }
         }

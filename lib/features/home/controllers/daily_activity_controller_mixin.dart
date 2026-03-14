@@ -8,6 +8,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   static const _baitulMukarramLabel = 'Baitul Mukarram, Dhaka';
   static const _apiMethod = 1; // University of Islamic Sciences, Karachi
   static const _apiSchool = 1; // Hanafi
+  static const _prayerCarouselSeed = 1000;
+  static const _prayerCarouselItemCount = 10000;
 
   late final Timer _clockTimer;
   DateTime _now = DateTime.now();
@@ -77,7 +79,7 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   void initializeDailyActivityController() {
     _prayerPageController = PageController(
       viewportFraction: 0.23,
-      initialPage: _prayerOrder.indexOf(_activePrayer),
+      initialPage: _carouselIndexForPrayer(_activePrayer),
     );
     _setBaitulMukarramLocation();
     _seedInitialPrayerPreview();
@@ -552,18 +554,11 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   String _localizedPrayerTime(String value) =>
       _isBangla ? _toBanglaDigits(value) : value;
 
-  String _localizedNextSehriLabel() => _isBangla
-      ? '\u09aa\u09b0\u09ac\u09b0\u09cd\u09a4\u09c0 \u09b8\u09c7\u09b9\u09b0\u09bf'
-      : 'Next Sehri';
+  String _localizedNextSehriLabel() =>
+      _isBangla ? '\u09b8\u09c7\u09b9\u09b0\u09bf' : 'Sehri';
 
-  String _localizedNextIftarLabel() => _isBangla
-      ? '\u09aa\u09b0\u09ac\u09b0\u09cd\u09a4\u09c0 \u0987\u09ab\u09a4\u09be\u09b0'
-      : 'Next Iftar';
-
-  String _localizedDawnPrefix() => _isBangla ? '\u09ad\u09cb\u09b0' : 'Dawn';
-
-  String _localizedSunsetPrefix() =>
-      _isBangla ? '\u09b8\u09a8\u09cd\u09a7\u09cd\u09af\u09be' : 'Sunset';
+  String _localizedNextIftarLabel() =>
+      _isBangla ? '\u0987\u09ab\u09a4\u09be\u09b0' : 'Iftar';
 
   String _localizedRemainingLabel() => _isBangla
       ? '\u0985\u09ac\u09b6\u09bf\u09b7\u09cd\u099f \u09b8\u09ae\u09df'
@@ -689,9 +684,8 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
       return;
     }
 
-    final topItems = [...cached.items]..sort(
-      (a, b) => a.distanceKm.compareTo(b.distanceKm),
-    );
+    final topItems = [...cached.items]
+      ..sort((a, b) => a.distanceKm.compareTo(b.distanceKm));
     _safeSetState(() {
       _nearbyMosquePreview = topItems.take(3).toList(growable: false);
       _nearbyMosquePreviewUpdatedAt = cached.updatedAt;
@@ -930,10 +924,49 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   String get _displayPrayer => _selectedPrayer ?? _activePrayer;
   bool get _isShowingActivePrayer => _displayPrayer == _activePrayer;
 
+  int get _prayerCarouselItemsCount => _prayerCarouselItemCount;
+
+  String _prayerForCarouselIndex(int index) {
+    final len = _prayerOrder.length;
+    final normalized = ((index % len) + len) % len;
+    return _prayerOrder[normalized];
+  }
+
+  int _carouselIndexForPrayer(String prayer, {int? around}) {
+    final prayerIndex = _prayerOrder.indexOf(prayer);
+    if (prayerIndex == -1) {
+      return _prayerCarouselSeed * _prayerOrder.length;
+    }
+
+    final len = _prayerOrder.length;
+    if (around == null) {
+      return (_prayerCarouselSeed * len) + prayerIndex;
+    }
+
+    final base = around - (around % len);
+    final candidates = <int>[
+      base + prayerIndex,
+      base + prayerIndex + len,
+      base + prayerIndex - len,
+    ];
+    candidates.sort((a, b) => (a - around).abs().compareTo((b - around).abs()));
+    return candidates.first;
+  }
+
+  int _currentCarouselPage() {
+    if (_prayerPageController.hasClients) {
+      return _prayerPageController.page?.round() ??
+          _prayerPageController.initialPage;
+    }
+    return _prayerPageController.initialPage;
+  }
+
   void _syncPrayerPageToActive({required bool animate}) {
     if (!_prayerPageController.hasClients) return;
-    final target = _prayerOrder.indexOf(_activePrayer);
-    if (target == -1) return;
+    final target = _carouselIndexForPrayer(
+      _activePrayer,
+      around: _currentCarouselPage(),
+    );
     if (animate) {
       _prayerPageController.animateToPage(
         target,

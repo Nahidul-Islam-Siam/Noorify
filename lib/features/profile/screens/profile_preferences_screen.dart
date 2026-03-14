@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -42,7 +42,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
 
   String _repairMojibake(String value) {
     var output = value;
-    for (var i = 0; i < 2; i++) {
+    for (var i = 0; i < 5; i++) {
       if (!_looksMojibake(output)) break;
       try {
         output = utf8.decode(latin1.encode(output));
@@ -92,21 +92,21 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: Text(_text('Logout', 'লগআউট')),
+          title: Text(_text('Logout', '\u09b2\u0997\u0986\u0989\u099f')),
           content: Text(
             _text(
               'Are you sure you want to logout now?',
-              'আপনি কি এখন লগআউট করতে চান?',
+              '\u0986\u09aa\u09a8\u09bf \u0995\u09bf \u098f\u0996\u09a8 \u09b2\u0997\u0986\u0989\u099f \u0995\u09b0\u09a4\u09c7 \u099a\u09be\u09a8?',
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(_text('Cancel', 'বাতিল')),
+              child: Text(_text('Cancel', '\u09ac\u09be\u09a4\u09bf\u09b2')),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(_text('Logout', 'লগআউট')),
+              child: Text(_text('Logout', '\u09b2\u0997\u0986\u0989\u099f')),
             ),
           ],
         );
@@ -226,7 +226,12 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             }
 
             return AlertDialog(
-              title: Text(_text('Change Password', 'Change Password')),
+              title: Text(
+                _text(
+                  'Change Password',
+                  'পাস�??o�Yার্ড পরিবর্তন',
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -234,7 +239,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     controller: currentPasswordController,
                     obscureText: obscureCurrent,
                     decoration: InputDecoration(
-                      labelText: _text('Current Password', 'Current Password'),
+                      labelText: _text(
+                        'Current Password',
+                        'বর্তমান পাস�??o�Yার্ড',
+                      ),
                       suffixIcon: IconButton(
                         onPressed: () {
                           setDialogState(
@@ -254,7 +262,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     controller: newPasswordController,
                     obscureText: obscureNew,
                     decoration: InputDecoration(
-                      labelText: _text('New Password', 'New Password'),
+                      labelText: _text(
+                        'New Password',
+                        'নতুন পাস�??o�Yার্ড',
+                      ),
                       suffixIcon: IconButton(
                         onPressed: () {
                           setDialogState(() => obscureNew = !obscureNew);
@@ -272,7 +283,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     controller: confirmPasswordController,
                     obscureText: obscureConfirm,
                     decoration: InputDecoration(
-                      labelText: _text('Confirm Password', 'Confirm Password'),
+                      labelText: _text(
+                        'Confirm Password',
+                        'পাস�??o�Yার্ড নিশ্�sিত �???রুন',
+                      ),
                       suffixIcon: IconButton(
                         onPressed: () {
                           setDialogState(
@@ -294,7 +308,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                   onPressed: submitting
                       ? null
                       : () => Navigator.of(dialogContext).pop(false),
-                  child: Text(_text('Cancel', 'Cancel')),
+                  child: Text(_text('Cancel', '\u09ac\u09be\u09a4\u09bf\u09b2')),
                 ),
                 FilledButton(
                   onPressed: submitting ? null : submitChange,
@@ -304,7 +318,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(_text('Update', 'Update')),
+                      : Text(_text('Update', '�???পড�???�Y')),
                 ),
               ],
             );
@@ -333,18 +347,18 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     if (!_isBangla) return appFontSizeLabel(size);
     switch (size) {
       case AppFontSize.small:
-        return 'ছোট';
+        return '\u099b\u09cb\u099f';
       case AppFontSize.medium:
-        return 'মাঝারি';
+        return '\u09ae\u09be\u099d\u09be\u09b0\u09bf';
       case AppFontSize.large:
-        return 'বড়';
+        return '\u09ac\u09dc';
     }
   }
 
   String _translationLanguageLabel(String value) {
     if (!_isBangla) return value;
-    if (value == 'Bangla') return 'বাংলা';
-    if (value == 'English') return 'ইংরেজি';
+    if (value == 'Bangla') return '\u09ac\u09be\u0982\u09b2\u09be';
+    if (value == 'English') return '\u0987\u0982\u09b0\u09c7\u099c\u09bf';
     return value;
   }
 
@@ -377,7 +391,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             content: Text(
               _text(
                 'Please enable phone location service first',
-                'প্রথমে ফোনের লোকেশন সার্ভিস চালু করুন',
+                'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
               ),
             ),
           ),
@@ -399,7 +413,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             content: Text(
               _text(
                 'Location permission is permanently denied. Enable it in app settings.',
-                'লোকেশন পারমিশন স্থায়ীভাবে বন্ধ। অ্যাপ সেটিংস থেকে চালু করুন।',
+                'ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â€šÂ¬ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â§ÃƒÂ Ã‚Â¥Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Âª ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¥Ã‚Â¤',
               ),
             ),
           ),
@@ -415,7 +429,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             content: Text(
               _text(
                 'Location permission is needed for accurate timings',
-                'সঠিক সময়ের জন্য লোকেশন পারমিশন প্রয়োজন',
+                'ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¨',
               ),
             ),
           ),
@@ -429,7 +443,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            _text('Device location enabled', 'ডিভাইস লোকেশন চালু হয়েছে'),
+            _text(
+              'Device location enabled',
+              'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬ÂºÃƒÂ Ã‚Â§Ã¢â‚¬Â¡',
+            ),
           ),
         ),
       );
@@ -442,7 +459,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
           content: Text(
             _text(
               'Unable to enable location on this device right now',
-              'এই ডিভাইসে এখন লোকেশন চালু করা যাচ্ছে না',
+              'ÃƒÂ Ã‚Â¦Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬ÂºÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾',
             ),
           ),
         ),
@@ -465,17 +482,22 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     required String currentLanguage,
   }) async {
     final currentOption = _isBangla && currentLanguage == 'Bangla'
-        ? 'বাংলা'
+        ? '\u09ac\u09be\u0982\u09b2\u09be'
         : currentLanguage;
     final selected = await _pickOption(
-      title: _text('Translation Language', 'অনুবাদের ভাষা'),
+      title: _text(
+        'Translation Language',
+        '\u0985\u09a8\u09c1\u09ac\u09be\u09a6\u09c7\u09b0 \u09ad\u09be\u09b7\u09be',
+      ),
       options: _isBangla
-          ? const ['বাংলা', 'English']
+          ? const ['\u09ac\u09be\u0982\u09b2\u09be', 'English']
           : const ['English', 'Bangla'],
       current: currentOption,
     );
     if (selected == null) return;
-    final normalizedSelected = selected == 'বাংলা' ? 'Bangla' : selected;
+    final normalizedSelected = selected == '\u09ac\u09be\u0982\u09b2\u09be'
+        ? 'Bangla'
+        : selected;
     if (normalizedSelected == currentLanguage) return;
     translationLanguageNotifier.value = normalizedSelected;
     await saveAppPreferences();
@@ -512,7 +534,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
   Future<void> _selectHifzRepeatCount() async {
     final current = '${hifzRepeatCountNotifier.value}x';
     final selected = await _pickOption(
-      title: _text('Hifz Repeat Count', 'হিফজ রিপিট সংখ্যা'),
+      title: _text(
+        'Hifz Repeat Count',
+        'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œ ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾',
+      ),
       options: const ['1x', '3x', '5x', '10x'],
       current: current,
     );
@@ -572,7 +597,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             children: [
               ListTile(
                 title: Text(
-                  _text('Font Size', 'ফন্ট সাইজ'),
+                  _text(
+                    'Font Size',
+                    'ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…â€œ',
+                  ),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -759,7 +787,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 2, vertical: 6),
                       child: Text(
-                        _text('Profile', 'প্রোফাইল'),
+                        _text(
+                          'Profile',
+                          'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â²',
+                        ),
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -786,7 +817,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                     final displayName = name.trim().isEmpty
                                         ? _text(
                                             'Add your name',
-                                            'Add your name',
+                                            '\u0986\u09aa\u09a8\u09be\u09b0 \u09a8\u09be\u09ae \u09af\u09cb\u0997 \u0995\u09b0\u09c1\u09a8',
                                           )
                                         : name.trim();
                                     return Text(
@@ -848,14 +879,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ],
                       ),
                     ),
-                    _sectionLabel(_text('Nearby', 'Nearby')),
+                    _sectionLabel(_text('Nearby', '�???শ�???পাশ�???')),
                     _sectionCard(
                       child: _rowTile(
                         icon: Icons.mosque_rounded,
-                        title: _text('Find Mosque', 'Find Mosque'),
+                        title: _text(
+                          'Find Mosque',
+                          'মস�?"িদ �??"ুঁ�?"ুন',
+                        ),
                         subtitle: _text(
                           'Open nearest mosque and sync recent results',
-                          'Open nearest mosque and sync recent results',
+                          '\u09a8\u09bf\u0995\u099f\u09ac\u09b0\u09cd\u09a4\u09c0 \u09ae\u09b8\u099c\u09bf\u09a6 \u0996\u09c1\u09b2\u09c1\u09a8 \u098f\u09ac\u0982 \u09b8\u09be\u09ae\u09cd\u09aa\u09cd\u09b0\u09a4\u09bf\u0995 \u09ab\u09b2\u09be\u09ab\u09b2 \u09b8\u09bf\u0999\u09cd\u0995 \u0995\u09b0\u09c1\u09a8',
                         ),
                         onTap: () {
                           Navigator.of(
@@ -864,7 +898,9 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         },
                       ),
                     ),
-                    _sectionLabel(_text('General', 'সাধারণ')),
+                    _sectionLabel(
+                      _text('General', 'ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â§ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â£'),
+                    ),
                     _sectionCard(
                       child: Column(
                         children: [
@@ -873,7 +909,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             builder: (context, size, _) {
                               return _rowTile(
                                 icon: Icons.text_fields_rounded,
-                                title: _text('Font Size', 'ফন্ট সাইজ'),
+                                title: _text(
+                                  'Font Size',
+                                  'ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…â€œ',
+                                ),
                                 subtitle: _fontSizeLabel(size),
                                 onTap: _selectFontSize,
                               );
@@ -882,10 +921,13 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           Divider(height: 1, color: glass.glassBorder),
                           _rowTile(
                             icon: Icons.lock_outline_rounded,
-                            title: _text('Change Password', 'Change Password'),
+                            title: _text(
+                              'Change Password',
+                              'পাস�??o�Yার্ড পরিবর্তন',
+                            ),
                             subtitle: _text(
                               'Update your account password',
-                              'Update your account password',
+                              '\u0986\u09aa\u09a8\u09be\u09b0 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f\u09c7\u09b0 \u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u0986\u09aa\u09a1\u09c7\u099f \u0995\u09b0\u09c1\u09a8',
                             ),
                             onTap: _openChangePassword,
                           ),
@@ -895,10 +937,13 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             builder: (context, enabled, _) {
                               return _switchRow(
                                 icon: Icons.dark_mode_outlined,
-                                title: _text('Dark Theme', 'ডার্ক থিম'),
+                                title: _text(
+                                  'Dark Theme',
+                                  'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â®',
+                                ),
                                 subtitle: _text(
                                   'Switch to dark color scheme',
-                                  'ডার্ক কালার স্কিম চালু করুন',
+                                  'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â® ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
                                 ),
                                 value: enabled,
                                 onChanged: _setDarkTheme,
@@ -911,10 +956,13 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             builder: (context, enabled, _) {
                               return _switchRow(
                                 icon: Icons.vibration_rounded,
-                                title: _text('Vibration', 'Vibration'),
+                                title: _text(
+                                  'Vibration',
+                                  'ভা�???ব্র�???শন',
+                                ),
                                 subtitle: _text(
                                   'Enable vibration feedback in app actions',
-                                  'Enable vibration feedback in app actions',
+                                  '\u0985\u09cd\u09af\u09be\u09aa\u09c7\u09b0 \u0995\u09be\u099c\u0997\u09c1\u09b2\u09cb\u09a4\u09c7 \u09ad\u09be\u0987\u09ac\u09cd\u09b0\u09c7\u09b6\u09a8 \u09ab\u09bf\u09a1\u09ac\u09cd\u09af\u09be\u0995 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09c1\u09a8',
                                 ),
                                 value: enabled,
                                 onChanged: _setHapticFeedback,
@@ -929,11 +977,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.my_location_rounded,
                                 title: _text(
                                   'Use Device Location',
-                                  'ডিভাইস লোকেশন ব্যবহার',
+                                  'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°',
                                 ),
                                 subtitle: _text(
                                   'Accurate prayer/sehri/iftar by your area',
-                                  'আপনার এলাকার সঠিক সালাত/সেহরি/ইফতার সময়',
+                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¤/ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿/ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼',
                                 ),
                                 value: enabled,
                                 onChanged: _setUseDeviceLocation,
@@ -943,7 +991,12 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ],
                       ),
                     ),
-                    _sectionLabel(_text('Prayer Setting', 'প্রার্থনা সেটিং')),
+                    _sectionLabel(
+                      _text(
+                        'Prayer Setting',
+                        'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡',
+                      ),
+                    ),
                     _sectionCard(
                       child: Column(
                         children: [
@@ -974,7 +1027,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.translate_rounded,
                                 title: _text(
                                   'Show Translation',
-                                  'অনুবাদ দেখান',
+                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
                                 ),
                                 subtitle: _translationLanguageLabel(language),
                                 value: enabled,
@@ -1001,10 +1054,13 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             builder: (context, enabled, _) {
                               return _switchRow(
                                 icon: Icons.menu_book_outlined,
-                                title: _text('Show Tajweed', 'তাজবিদ দেখান'),
+                                title: _text(
+                                  'Show Tajweed',
+                                  'ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¦ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                ),
                                 subtitle: _text(
                                   'Click to view the tajweed detail',
-                                  'তাজবিদের বিস্তারিত দেখতে চালু করুন',
+                                  'ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
                                 ),
                                 value: enabled,
                                 onChanged: _setShowTajweed,
@@ -1017,11 +1073,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             builder: (context, translator, _) {
                               return _rowTile(
                                 icon: Icons.person_outline,
-                                title: _text('Translator', 'অনুবাদক'),
+                                title: _text(
+                                  'Translator',
+                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢',
+                                ),
                                 subtitle: translator,
                                 onTap: () async {
                                   final selected = await _pickOption(
-                                    title: _text('Translator', 'অনুবাদক'),
+                                    title: _text(
+                                      'Translator',
+                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢',
+                                    ),
                                     options: const [
                                       'Dr. Mustafa Khattab',
                                       'Muhiuddin Khan',
@@ -1045,11 +1107,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             builder: (context, reciter, _) {
                               return _rowTile(
                                 icon: Icons.mic_none_rounded,
-                                title: _text('Reciters', 'কারী'),
+                                title: _text(
+                                  'Reciters',
+                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â€šÂ¬',
+                                ),
                                 subtitle: reciter,
                                 onTap: () async {
                                   final selected = await _pickOption(
-                                    title: _text('Reciter', 'কারী'),
+                                    title: _text(
+                                      'Reciter',
+                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â€šÂ¬',
+                                    ),
                                     options: const [
                                       'Mishary Rashid Alafasy',
                                       'Saad Al-Ghamdi',
@@ -1075,7 +1143,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.notifications_active_outlined,
                                 title: _text(
                                   'Adzan Notification',
-                                  'আযান নোটিফিকেশন',
+                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨',
                                 ),
                                 subtitle: voice,
                                 value: enabled,
@@ -1083,7 +1151,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                   await _setAdzanNotification(value);
                                   if (!value) return;
                                   final selected = await _pickOption(
-                                    title: _text('Adzan Voice', 'আযানের ভয়েস'),
+                                    title: _text(
+                                      'Adzan Voice',
+                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸',
+                                    ),
                                     options: const [
                                       'Hanan Attaki',
                                       'Mishary Alafasy',
@@ -1109,7 +1180,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.alarm_on_outlined,
                                 title: _text(
                                   'Imsak Notification',
-                                  'ইমসাক নোটিফিকেশন',
+                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨',
                                 ),
                                 subtitle: voice,
                                 value: enabled,
@@ -1117,7 +1188,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                   await _setImsakNotification(value);
                                   if (!value) return;
                                   final selected = await _pickOption(
-                                    title: _text('Imsak Tone', 'ইমসাক টোন'),
+                                    title: _text(
+                                      'Imsak Tone',
+                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                    ),
                                     options: const [
                                       'Default',
                                       'Gentle',
@@ -1137,7 +1211,12 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ],
                       ),
                     ),
-                    _sectionLabel(_text('Quran Learning', 'কুরআন লার্নিং')),
+                    _sectionLabel(
+                      _text(
+                        'Quran Learning',
+                        'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡',
+                      ),
+                    ),
                     _sectionCard(
                       child: ValueListenableBuilder<bool>(
                         valueListenable: hifzModeEnabledNotifier,
@@ -1148,11 +1227,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.self_improvement_outlined,
                                 title: _text(
                                   'Enable Hifz Mode',
-                                  'হিফজ মোড চালু করুন',
+                                  'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œ ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¡ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
                                 ),
                                 subtitle: _text(
                                   'Use repeat mode for ayah memorization',
-                                  'আয়াত মুখস্থের জন্য রিপিট মোড ব্যবহার করুন',
+                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
                                 ),
                                 value: enabled,
                                 onChanged: _setHifzMode,
@@ -1166,11 +1245,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                       icon: Icons.repeat_rounded,
                                       title: _text(
                                         'Hifz Repeat Count',
-                                        'হিফজ রিপিট সংখ্যা',
+                                        'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œ ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾',
                                       ),
                                       subtitle: _text(
                                         '${repeatCount}x per ayah',
-                                        'প্রতি আয়াতে ${repeatCount}x',
+                                        'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¿ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ${repeatCount}x',
                                       ),
                                       onTap: _selectHifzRepeatCount,
                                     );
@@ -1185,11 +1264,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                       icon: Icons.visibility_off_outlined,
                                       title: _text(
                                         'Hide Bangla in Hifz',
-                                        'হিফজে বাংলা লুকান',
+                                        'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
                                       ),
                                       subtitle: _text(
                                         'Show Arabic only while practicing',
-                                        'প্র্যাকটিসে শুধু আরবি দেখান',
+                                        'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â§ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
                                       ),
                                       value: hideBangla,
                                       onChanged: _setHifzHideBanglaMeaning,
@@ -1209,14 +1288,19 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         if (!isAdmin) return const SizedBox.shrink();
                         return Column(
                           children: [
-                            _sectionLabel(_text('Admin', 'Admin')),
+                            _sectionLabel(
+                              _text('Admin', '�???্যাডমিন'),
+                            ),
                             _sectionCard(
                               child: _rowTile(
                                 icon: Icons.admin_panel_settings_outlined,
-                                title: _text('Admin Panel', 'Admin Panel'),
+                                title: _text(
+                                  'Admin Panel',
+                                  '�???্যাডমিন প্যান�???ল',
+                                ),
                                 subtitle: _text(
                                   'Manage app announcements and modal banners',
-                                  'Manage app announcements and modal banners',
+                                  '\u0985\u09cd\u09af\u09be\u09aa\u09c7\u09b0 \u0985\u09cd\u09af\u09be\u09a8\u09be\u0989\u09a8\u09cd\u09b8\u09ae\u09c7\u09a8\u09cd\u099f \u0993 \u09ae\u09cb\u09a1\u09be\u09b2 \u09ac\u09cd\u09af\u09be\u09a8\u09be\u09b0 \u09aa\u09b0\u09bf\u099a\u09be\u09b2\u09a8\u09be \u0995\u09b0\u09c1\u09a8',
                                 ),
                                 onTap: () {
                                   Navigator.of(
@@ -1247,7 +1331,10 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ),
                         icon: const Icon(Icons.logout_rounded, size: 14),
                         label: Text(
-                          _text('Log Out', 'লগ আউট'),
+                          _text(
+                            'Log Out',
+                            'ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã¢â‚¬â€ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â°ÃƒÂ Ã‚Â¦Ã…Â¸',
+                          ),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -1292,3 +1379,8 @@ class ValueListenableBuilder2<A, B> extends StatelessWidget {
     );
   }
 }
+
+
+
+
+
