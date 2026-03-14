@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
       title: 'Noorify',
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: BrandColors.primary,
+        colorSchemeSeed: const Color.fromRGBO(30, 168, 184, 1),
         scaffoldBackgroundColor: BrandColors.screenBackground,
         textTheme: GoogleFonts.plusJakartaSansTextTheme(),
       ),

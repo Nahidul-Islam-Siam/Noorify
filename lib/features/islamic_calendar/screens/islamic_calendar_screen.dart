@@ -195,7 +195,18 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
 
   String _toBanglaDigits(String input) {
     const latin = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    const bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    const bangla = [
+      '\u09e6',
+      '\u09e7',
+      '\u09e8',
+      '\u09e9',
+      '\u09ea',
+      '\u09eb',
+      '\u09ec',
+      '\u09ed',
+      '\u09ee',
+      '\u09ef',
+    ];
     var output = input;
     for (var i = 0; i < latin.length; i++) {
       output = output.replaceAll(latin[i], bangla[i]);
@@ -433,6 +444,78 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
     final minute = dateTime.minute.toString().padLeft(2, '0');
     final suffix = dateTime.hour >= 12 ? 'PM' : 'AM';
     return '${_digits('$hour12:$minute')} $suffix';
+  }
+
+  String _prayerLabel(String key) {
+    switch (key) {
+      case 'Fajr':
+        return _text('Fajr', '\u09ab\u099c\u09b0');
+      case 'Sunrise':
+        return _text(
+          'Sunrise',
+          '\u09b8\u09c2\u09b0\u09cd\u09af\u09cb\u09a6\u09af\u09bc',
+        );
+      case 'Dhuhr':
+        return _text('Dhuhr', '\u09af\u09cb\u09b9\u09b0');
+      case 'Asr':
+        return _text('Asr', '\u0986\u09b8\u09b0');
+      case 'Maghrib':
+        return _text('Maghrib', '\u09ae\u09be\u0997\u09b0\u09bf\u09ac');
+      case 'Isha':
+        return _text('Isha', '\u098f\u09b6\u09be');
+      default:
+        return key;
+    }
+  }
+
+  Widget _buildPrayerTimeRow(
+    NoorifyGlassTheme glass, {
+    required IconData icon,
+    required String key,
+    required DateTime at,
+    required bool highlighted,
+  }) {
+    final rowColor = highlighted
+        ? (glass.isDark ? const Color(0x2038D4C7) : const Color(0x1A1EA8B8))
+        : (glass.isDark ? const Color(0x181A3345) : const Color(0x80FFFFFF));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: rowColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: highlighted
+              ? glass.accent.withValues(alpha: 0.65)
+              : glass.glassBorder.withValues(alpha: 0.55),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: glass.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _prayerLabel(key),
+              style: TextStyle(
+                color: glass.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            _formatTime(at.toLocal()),
+            style: TextStyle(
+              color: glass.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   double _moonProgress() {
@@ -740,15 +823,11 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    gradient: selected
-                        ? LinearGradient(
-                            colors: glass.isDark
-                                ? const [Color(0xFF2FD8C7), Color(0xFF1B9CAA)]
-                                : const [Color(0xFF84EDE0), Color(0xFF45B9C4)],
-                          )
-                        : null,
+                    gradient: null,
                     color: selected
-                        ? null
+                        ? (glass.isDark
+                              ? const Color(0xFF1F5F6F)
+                              : const Color(0xFF85DFE6))
                         : (glass.isDark
                               ? const Color(0x241B3B4E)
                               : const Color(0x66FFFFFF)),
@@ -767,14 +846,14 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
                           style: TextStyle(
                             color: selected
                                 ? (glass.isDark
-                                      ? const Color(0xFF073036)
+                                      ? const Color(0xFFE9FBFF)
                                       : const Color(0xFF0B4A52))
                                 : (inMonth
                                       ? glass.textPrimary
                                       : glass.textMuted.withValues(
                                           alpha: 0.58,
                                         )),
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: selected
                                 ? FontWeight.w800
                                 : FontWeight.w700,
@@ -875,8 +954,27 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
   }
 
   Widget _buildPrayerCard(NoorifyGlassTheme glass, PrayerTimes prayers) {
-    final sehri = prayers.fajr.toLocal();
-    final iftar = prayers.maghrib.toLocal();
+    final now = DateTime.now();
+    final selectedIsToday = _isSameDate(_selectedDate, now);
+    final rows = <({String key, DateTime at, IconData icon})>[
+      (key: 'Fajr', at: prayers.fajr, icon: Icons.wb_twilight_outlined),
+      (key: 'Sunrise', at: prayers.sunrise, icon: Icons.wb_sunny_outlined),
+      (key: 'Dhuhr', at: prayers.dhuhr, icon: Icons.light_mode_outlined),
+      (key: 'Asr', at: prayers.asr, icon: Icons.sunny_snowing),
+      (key: 'Maghrib', at: prayers.maghrib, icon: Icons.nights_stay_outlined),
+      (key: 'Isha', at: prayers.isha, icon: Icons.dark_mode_outlined),
+    ];
+
+    String? nextKey;
+    if (selectedIsToday) {
+      for (final row in rows) {
+        if (row.at.isAfter(now)) {
+          nextKey = row.key;
+          break;
+        }
+      }
+      nextKey ??= rows.first.key;
+    }
 
     return NoorifyGlassCard(
       radius: BorderRadius.circular(18),
@@ -885,30 +983,58 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _text('Prayer Window', 'নামাজ সময়'),
-            style: TextStyle(
-              color: glass.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _text('Prayer Times', 'সালাতের সময়'),
+                  style: TextStyle(
+                    color: glass.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context).pushNamed(RouteNames.prayerTimes),
+                child: Text(
+                  _text('View all', 'রেফারেন্স দেখুন'),
+                  style: TextStyle(
+                    color: glass.accent,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
-          Text(
-            '${_text('Sehri ends', 'সেহরি শেষ')}: ${_formatTime(sehri)}',
-            style: TextStyle(
-              color: glass.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+          ...rows.map(
+            (row) => _buildPrayerTimeRow(
+              glass,
+              icon: row.icon,
+              key: row.key,
+              at: row.at,
+              highlighted: row.key == nextKey,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
-            '${_text('Iftar starts', 'ইফতার শুরু')}: ${_formatTime(iftar)}',
+            '${_text('Sehri ends', 'সেহরি শেষ')}: ${_formatTime(prayers.fajr.toLocal())}',
             style: TextStyle(
-              color: glass.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
+              color: glass.textSecondary,
+              fontSize: 12.2,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${_text('Iftar starts', 'ইফতার শুরু')}: ${_formatTime(prayers.maghrib.toLocal())}',
+            style: TextStyle(
+              color: glass.textSecondary,
+              fontSize: 12.2,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1106,42 +1232,17 @@ class _IslamicCalendarScreenState extends State<IslamicCalendarScreen> {
                     _buildCalendarCard(glass, today, visibleDays),
                     _buildEventChips(glass, selectedEvents),
                     const SizedBox(height: 12),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final compact = constraints.maxWidth < 390;
-                        if (compact) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _buildPrayerCard(glass, prayerTimes),
-                              const SizedBox(height: 10),
-                              _buildImportantEventsCard(
-                                glass,
-                                selectedEvents,
-                                timelineItems,
-                              ),
-                            ],
-                          );
-                        }
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 9,
-                              child: _buildPrayerCard(glass, prayerTimes),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              flex: 11,
-                              child: _buildImportantEventsCard(
-                                glass,
-                                selectedEvents,
-                                timelineItems,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildPrayerCard(glass, prayerTimes),
+                        const SizedBox(height: 10),
+                        _buildImportantEventsCard(
+                          glass,
+                          selectedEvents,
+                          timelineItems,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 10),
                     NoorifyGlassCard(

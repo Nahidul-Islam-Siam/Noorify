@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:first_project/core/constants/route_names.dart';
 import 'package:first_project/shared/services/app_globals.dart';
@@ -61,6 +62,38 @@ class DiscoverScreen extends StatelessWidget {
           Navigator.of(context).pushNamed(route);
         }
 
+        Future<void> openZakatCalculator() async {
+          final uri = Uri.parse('https://ilmifytech.agency/zakat');
+
+          final launchedInApp = await launchUrl(
+            uri,
+            mode: LaunchMode.inAppBrowserView,
+            browserConfiguration: const BrowserConfiguration(showTitle: true),
+          );
+          if (launchedInApp) return;
+
+          final launchedWebView = await launchUrl(
+            uri,
+            mode: LaunchMode.inAppWebView,
+            webViewConfiguration: const WebViewConfiguration(
+              enableJavaScript: true,
+              enableDomStorage: true,
+            ),
+          );
+          if (launchedWebView) return;
+
+          final launchedExternal = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+
+          if (!launchedExternal && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Unable to open Zakat calculator')),
+            );
+          }
+        }
+
         return Scaffold(
           backgroundColor: glass.bgBottom,
           body: NoorifyGlassBackground(
@@ -69,75 +102,28 @@ class DiscoverScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: ListView(
-                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
                       children: [
-                        NoorifyGlassCard(
-                          radius: BorderRadius.circular(28),
-                          padding: const EdgeInsets.fromLTRB(16, 16, 12, 12),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          t(
-                                            'Islamic Knowledge Hub',
-                                            'ইসলামিক জ্ঞান ভান্ডার',
-                                          ),
-                                          style: TextStyle(
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.w700,
-                                            color: glass.textPrimary,
-                                            height: 1.1,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          'Asmaul Husna | Hadith | Dua',
-                                          style: TextStyle(
-                                            fontSize: 13.5,
-                                            color: glass.textSecondary,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton.filledTonal(
-                                    onPressed: () =>
-                                        openRoute(RouteNames.preferences),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: glass.isDark
-                                          ? const Color(0x332EB8E6)
-                                          : const Color(0x221EA8B8),
-                                      foregroundColor: glass.accent,
-                                    ),
-                                    icon: const Icon(Icons.settings_rounded),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                width: 120,
-                                height: 3,
-                                decoration: BoxDecoration(
-                                  color: glass.accent.withValues(alpha: 0.65),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                              ),
-                            ],
+                        _DiscoverHeaderCard(
+                          title: t(
+                            'Discover',
+                            '\u09a1\u09bf\u09b8\u0995\u09ad\u09be\u09b0',
                           ),
+                          subtitle: t(
+                            'Read, learn and practice daily',
+                            '\u09aa\u09a1\u09bc\u09c1\u09a8, \u09b6\u09bf\u0996\u09c1\u09a8, \u09aa\u09cd\u09b0\u09a4\u09bf\u09a6\u09bf\u09a8 \u0986\u09ae\u09b2 \u0995\u09b0\u09c1\u09a8',
+                          ),
+                          onCalendarTap: () =>
+                              openRoute(RouteNames.islamicCalendar),
+                          onSettingsTap: () =>
+                              openRoute(RouteNames.preferences),
                         ),
                         const SizedBox(height: 12),
                         NoorifyGlassCard(
-                          radius: BorderRadius.circular(18),
+                          radius: BorderRadius.circular(16),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
-                            vertical: 6,
+                            vertical: 4,
                           ),
                           child: TextField(
                             style: TextStyle(color: glass.textPrimary),
@@ -148,95 +134,216 @@ class DiscoverScreen extends StatelessWidget {
                                 color: glass.textMuted,
                               ),
                               hintText: t(
-                                'Search for resources...',
-                                'রিসোর্স খুঁজুন...',
+                                'Search resource',
+                                '\u09b0\u09bf\u09b8\u09cb\u09b0\u09cd\u09b8 \u0996\u09c1\u0981\u099c\u09c1\u09a8',
                               ),
                               hintStyle: TextStyle(color: glass.textMuted),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        _SectionTitle(
-                          title: t('Names of Allah', 'আল্লাহর নাম'),
-                        ),
-                        _FeatureCard(
-                          title: t('Ar-Rahman', 'আর-রহমান'),
-                          subtitle: t('The Most Merciful', 'পরম করুণাময়'),
-                          detail: t(
-                            'Featured Name of the Day',
-                            'আজকের নির্বাচিত নাম',
-                          ),
-                          badge: '1',
-                          trailingText: 'Ar-Rahman',
-                          icon: Icons.menu_book_rounded,
-                          onTap: () => openRoute(RouteNames.asma),
-                        ),
-                        const SizedBox(height: 10),
-                        _SectionTitle(
-                          title: t('Hadith Collection', 'হাদিস সংগ্রহ'),
-                        ),
-                        _FeatureCard(
-                          title: t('Hadith 1', 'হাদিস ১'),
-                          subtitle: t('Collection: Bukhari', 'সংগ্রহ: বুখারি'),
-                          detail: t(
-                            'Read short authentic hadith references',
-                            'সহিহ হাদিসের সংক্ষিপ্ত রেফারেন্স পড়ুন',
-                          ),
-                          icon: Icons.auto_stories_rounded,
-                          onTap: () => openRoute(RouteNames.hadith),
-                        ),
-                        const SizedBox(height: 10),
-                        _SectionTitle(title: t('Dua & Zikr', 'দোয়া ও জিকর')),
-                        _FeatureCard(
-                          title: t('Dua 1', 'দোয়া ১'),
-                          subtitle: t('Before Sleeping', 'ঘুমানোর আগে'),
-                          detail: 'Allahumma bismika amutu wa ahya',
-                          icon: Icons.volunteer_activism_rounded,
-                          onTap: () => openRoute(RouteNames.dua),
-                        ),
                         const SizedBox(height: 12),
-                        _SectionTitle(title: t('Explore More', 'আরও দেখুন')),
+                        _SectionTitle(
+                          title: t(
+                            'Quick Access',
+                            '\u09a6\u09cd\u09b0\u09c1\u09a4 \u09b8\u09c7\u09ac\u09be',
+                          ),
+                        ),
                         GridView.count(
-                          crossAxisCount: 3,
-                          childAspectRatio: 1.1,
+                          crossAxisCount: 2,
+                          childAspectRatio: 1.95,
                           mainAxisSpacing: 8,
                           crossAxisSpacing: 8,
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           children: [
-                            _QuickTile(
-                              title: t('Prophet Stories', 'নবী-রাসুল কাহিনী'),
-                              icon: Icons.account_balance_rounded,
-                              onTap: () => openRoute(RouteNames.hadith),
+                            _ActionCard(
+                              title: t(
+                                'Quran',
+                                '\u0995\u09c1\u09b0\u0986\u09a8',
+                              ),
+                              subtitle: t(
+                                'Read and listen',
+                                '\u09aa\u09be\u09a0 \u0993 \u09b6\u09c1\u09a8\u09c1\u09a8',
+                              ),
+                              icon: Icons.auto_stories_rounded,
+                              accentColor: const Color(0xFF16A6C7),
+                              onTap: () => openRoute(RouteNames.quran),
                             ),
-                            _QuickTile(
+                            _ActionCard(
+                              title: t(
+                                'Prayer Times',
+                                '\u09a8\u09be\u09ae\u09be\u099c\u09c7\u09b0 \u09b8\u09ae\u09df',
+                              ),
+                              subtitle: t(
+                                'Today schedule',
+                                '\u0986\u099c\u0995\u09c7\u09b0 \u09b8\u09ae\u09df\u09b8\u09c2\u099a\u09bf',
+                              ),
+                              icon: Icons.access_time_filled_rounded,
+                              accentColor: const Color(0xFF24A197),
+                              onTap: () => openRoute(RouteNames.prayerTimes),
+                            ),
+                            _ActionCard(
                               title: t(
                                 'Islamic Calendar',
-                                'ইসলামিক ক্যালেন্ডার',
+                                '\u09b9\u09bf\u099c\u09b0\u09bf \u0995\u09cd\u09af\u09be\u09b2\u09c7\u09a8\u09cd\u09a1\u09be\u09b0',
                               ),
-                              icon: Icons.calendar_month_rounded,
+                              subtitle: t(
+                                'Hijri dates & events',
+                                '\u09b9\u09bf\u099c\u09b0\u09bf \u09a4\u09be\u09b0\u09bf\u0996 \u0993 \u0987\u09ad\u09c7\u09a8\u09cd\u099f',
+                              ),
+                              icon: Icons.event_note_rounded,
+                              accentColor: const Color(0xFF1EA8B8),
                               onTap: () =>
                                   openRoute(RouteNames.islamicCalendar),
                             ),
-                            _QuickTile(
-                              title: t('Quran Quiz', 'কুরআন কুইজ'),
-                              icon: Icons.quiz_rounded,
-                              onTap: () => openRoute(RouteNames.quran),
+                            _ActionCard(
+                              title: t(
+                                'Qibla',
+                                '\u0995\u09bf\u09ac\u09b2\u09be',
+                              ),
+                              subtitle: t(
+                                'Direction compass',
+                                '\u09a6\u09bf\u0995\u09a8\u09bf\u09b0\u09cd\u09a6\u09c7\u09b6\u0995',
+                              ),
+                              icon: Icons.near_me_rounded,
+                              accentColor: const Color(0xFF2C9ED8),
+                              onTap: () => openRoute(RouteNames.prayerCompass),
                             ),
-                            _QuickTile(
-                              title: t('Tasbih Counter', 'তাসবিহ কাউন্টার'),
-                              icon: Icons.countertops_rounded,
+                            _ActionCard(
+                              title: t(
+                                'Asmaul Husna',
+                                '\u0986\u09b8\u09ae\u09be\u0989\u09b2 \u09b9\u09c1\u09b8\u09a8\u09be',
+                              ),
+                              subtitle: t(
+                                '99 Names of Allah',
+                                '\u0986\u09b2\u09cd\u09b2\u09be\u09b9\u09b0 \u09ef\u09ef \u09a8\u09be\u09ae',
+                              ),
+                              icon: Icons.nightlight_round,
+                              accentColor: const Color(0xFF28A8B0),
+                              onTap: () => openRoute(RouteNames.asma),
+                            ),
+                            _ActionCard(
+                              title: t(
+                                'Hadith',
+                                '\u09b9\u09be\u09a6\u09bf\u09b8',
+                              ),
+                              subtitle: t(
+                                'Bukhari collection',
+                                '\u09ac\u09c1\u0996\u09be\u09b0\u09bf \u09b8\u0982\u0997\u09cd\u09b0\u09b9',
+                              ),
+                              icon: Icons.library_books_rounded,
+                              accentColor: const Color(0xFF21A8C8),
+                              onTap: () => openRoute(RouteNames.hadith),
+                            ),
+                            _ActionCard(
+                              title: t('Dua', '\u09a6\u09cb\u09af\u09bc\u09be'),
+                              subtitle: t(
+                                'Daily duas',
+                                '\u09a6\u09c8\u09a8\u09bf\u0995 \u09a6\u09cb\u09af\u09bc\u09be',
+                              ),
+                              icon: Icons.pan_tool_alt_rounded,
+                              accentColor: const Color(0xFF1FAEA7),
+                              onTap: () => openRoute(RouteNames.dua),
+                            ),
+                            _ActionCard(
+                              title: t(
+                                'Zakat Calculator',
+                                '\u09af\u09be\u0995\u09be\u09a4 \u0995\u09cd\u09af\u09be\u09b2\u0995\u09c1\u09b2\u09c7\u099f\u09b0',
+                              ),
+                              subtitle: t(
+                                'Calculate zakat',
+                                '\u09af\u09be\u0995\u09be\u09a4 \u09b9\u09bf\u09b8\u09be\u09ac',
+                              ),
+                              icon: Icons.savings_rounded,
+                              accentColor: const Color(0xFF2A9CB4),
+                              onTap: openZakatCalculator,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _SectionTitle(
+                          title: t(
+                            'Daily Picks',
+                            '\u0986\u099c\u0995\u09c7\u09b0 \u09a8\u09bf\u09b0\u09cd\u09ac\u09be\u099a\u09a8',
+                          ),
+                        ),
+                        _FeatureListTile(
+                          title: t(
+                            'Featured Name: Ar-Rahman',
+                            '\u09ab\u09bf\u099a\u09be\u09b0\u09cd\u09a1 \u09a8\u09be\u09ae: \u0986\u09b0-\u09b0\u09b9\u09ae\u09be\u09a8',
+                          ),
+                          subtitle: t(
+                            'Tap to explore Asmaul Husna',
+                            '\u0986\u09b8\u09ae\u09be\u0989\u09b2 \u09b9\u09c1\u09b8\u09a8\u09be \u09a6\u09c7\u0996\u09c1\u09a8',
+                          ),
+                          icon: Icons.menu_book_rounded,
+                          onTap: () => openRoute(RouteNames.asma),
+                        ),
+                        const SizedBox(height: 8),
+                        _FeatureListTile(
+                          title: t(
+                            'Hadith Collection',
+                            '\u09b9\u09be\u09a6\u09bf\u09b8 \u09b8\u0982\u0997\u09cd\u09b0\u09b9',
+                          ),
+                          subtitle: t(
+                            'Read short authentic references',
+                            '\u09b8\u0982\u0995\u09cd\u09b7\u09bf\u09aa\u09cd\u09a4 \u09b8\u09b9\u09bf\u09b9 \u09b0\u09c7\u09ab\u09be\u09b0\u09c7\u09a8\u09cd\u09b8 \u09aa\u09a1\u09bc\u09c1\u09a8',
+                          ),
+                          icon: Icons.auto_stories_rounded,
+                          onTap: () => openRoute(RouteNames.hadith),
+                        ),
+                        const SizedBox(height: 8),
+                        _FeatureListTile(
+                          title: t(
+                            'Dua & Zikr',
+                            '\u09a6\u09cb\u09af\u09bc\u09be \u0993 \u099c\u09bf\u0995\u09bf\u09b0',
+                          ),
+                          subtitle: t(
+                            'Daily duas and adhkar',
+                            '\u09a6\u09c8\u09a8\u09bf\u0995 \u09a6\u09cb\u09af\u09bc\u09be \u0993 \u099c\u09bf\u0995\u09bf\u09b0',
+                          ),
+                          icon: Icons.favorite_outline_rounded,
+                          onTap: () => openRoute(RouteNames.dua),
+                        ),
+                        const SizedBox(height: 12),
+                        _SectionTitle(
+                          title: t('Tools', '\u099f\u09c1\u09b2\u09b8'),
+                        ),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _MiniToolChip(
+                              title: t(
+                                'Tasbih',
+                                '\u09a4\u09be\u09b8\u09ac\u09bf\u09b9',
+                              ),
+                              icon: Icons.exposure_plus_1_rounded,
                               onTap: () => openRoute(RouteNames.tasbih),
                             ),
-                            _QuickTile(
-                              title: t('Prayer Times', 'নামাজের ওয়াক্ত'),
-                              icon: Icons.mosque_rounded,
-                              onTap: () => openRoute(RouteNames.prayerTimes),
+                            _MiniToolChip(
+                              title: t(
+                                'Find Mosque',
+                                '\u09a8\u09bf\u0995\u099f \u09ae\u09b8\u099c\u09bf\u09a6',
+                              ),
+                              icon: Icons.location_city_rounded,
+                              onTap: () => openRoute(RouteNames.findMosque),
                             ),
-                            _QuickTile(
-                              title: t('Islamic Tips', 'ইসলামিক টিপস'),
-                              icon: Icons.lightbulb_rounded,
+                            _MiniToolChip(
+                              title: t(
+                                'Islamic Tips',
+                                '\u0987\u09b8\u09b2\u09be\u09ae\u09bf\u0995 \u099f\u09bf\u09aa\u09b8',
+                              ),
+                              icon: Icons.tips_and_updates_rounded,
                               onTap: () => openRoute(RouteNames.about),
+                            ),
+                            _MiniToolChip(
+                              title: t(
+                                'Settings',
+                                '\u09b8\u09c7\u099f\u09bf\u0982\u09b8',
+                              ),
+                              icon: Icons.settings_rounded,
+                              onTap: () => openRoute(RouteNames.preferences),
                             ),
                           ],
                         ),
@@ -254,6 +361,95 @@ class DiscoverScreen extends StatelessWidget {
   }
 }
 
+class _DiscoverHeaderCard extends StatelessWidget {
+  const _DiscoverHeaderCard({
+    required this.title,
+    required this.subtitle,
+    required this.onCalendarTap,
+    required this.onSettingsTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback onCalendarTap;
+  final VoidCallback onSettingsTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
+    return NoorifyGlassCard(
+      radius: BorderRadius.circular(24),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        color: glass.textPrimary,
+                        height: 1.05,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: glass.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton.filledTonal(
+                onPressed: onCalendarTap,
+                style: IconButton.styleFrom(
+                  backgroundColor: glass.isDark
+                      ? const Color(0x332EB8E6)
+                      : const Color(0x221EA8B8),
+                  foregroundColor: glass.accent,
+                ),
+                icon: const Icon(Icons.calendar_today_rounded),
+              ),
+              const SizedBox(width: 4),
+              IconButton.filledTonal(
+                onPressed: onSettingsTap,
+                style: IconButton.styleFrom(
+                  backgroundColor: glass.isDark
+                      ? const Color(0x332EB8E6)
+                      : const Color(0x221EA8B8),
+                  foregroundColor: glass.accent,
+                ),
+                icon: const Icon(Icons.settings_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              width: 88,
+              height: 3,
+              decoration: BoxDecoration(
+                color: glass.accent.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.title});
 
@@ -263,7 +459,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final glass = NoorifyGlassTheme(context);
     return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 5),
+      padding: const EdgeInsets.only(left: 4, bottom: 6),
       child: Text(
         title,
         style: TextStyle(
@@ -276,126 +472,90 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
     required this.title,
     required this.subtitle,
-    required this.detail,
     required this.icon,
     required this.onTap,
-    this.badge,
-    this.trailingText,
+    this.accentColor,
   });
 
   final String title;
   final String subtitle;
-  final String detail;
   final IconData icon;
   final VoidCallback onTap;
-  final String? badge;
-  final String? trailingText;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
     final glass = NoorifyGlassTheme(context);
+    final accent = accentColor ?? glass.accent;
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: NoorifyGlassCard(
-        radius: BorderRadius.circular(18),
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        radius: BorderRadius.circular(16),
+        padding: const EdgeInsets.fromLTRB(11, 10, 10, 10),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
-                color: glass.isDark
-                    ? const Color(0x332EB8E6)
-                    : const Color(0x221EA8B8),
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  colors: [
+                    accent.withValues(alpha: glass.isDark ? 0.24 : 0.19),
+                    accent.withValues(alpha: glass.isDark ? 0.13 : 0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(
+                  color: accent.withValues(alpha: glass.isDark ? 0.45 : 0.35),
+                ),
               ),
-              child: Icon(icon, color: glass.accent, size: 26),
+              child: Icon(icon, size: 20, color: accent),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 9),
             Expanded(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 27 / 1.35,
-                            fontWeight: FontWeight.w700,
-                            color: glass.textPrimary,
-                          ),
-                        ),
-                      ),
-                      if (badge != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: glass.isDark
-                                ? const Color(0x332EB8E6)
-                                : const Color(0x221EA8B8),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            badge!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: glass.textSecondary,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                    ],
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.fade,
+                    style: TextStyle(
+                      color: glass.textPrimary,
+                      fontSize: 14.3,
+                      fontWeight: FontWeight.w700,
+                      height: 1.1,
+                    ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
                   Text(
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 24 / 1.35,
-                      color: glass.textPrimary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    detail,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13.5,
                       color: glass.textSecondary,
-                      height: 1.2,
+                      fontSize: 11.3,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ),
-            if (trailingText != null) ...[
-              const SizedBox(width: 8),
-              Text(
-                trailingText!,
-                style: TextStyle(
-                  fontSize: 19,
-                  color: glass.accentSoft,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+            const SizedBox(width: 6),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 12,
+              color: glass.textMuted,
+            ),
           ],
         ),
       ),
@@ -403,14 +563,16 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-class _QuickTile extends StatelessWidget {
-  const _QuickTile({
+class _FeatureListTile extends StatelessWidget {
+  const _FeatureListTile({
     required this.title,
+    required this.subtitle,
     required this.icon,
     required this.onTap,
   });
 
   final String title;
+  final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
 
@@ -422,23 +584,90 @@ class _QuickTile extends StatelessWidget {
       onTap: onTap,
       child: NoorifyGlassCard(
         radius: BorderRadius.circular(16),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        padding: const EdgeInsets.fromLTRB(12, 11, 12, 11),
         child: Row(
           children: [
+            Icon(icon, size: 20, color: glass.accent),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: glass.textPrimary,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: glass.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: glass.textSecondary,
+                      fontSize: 11.8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
-            Icon(icon, size: 20, color: glass.accentSoft),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: glass.textMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniToolChip extends StatelessWidget {
+  const _MiniToolChip({
+    required this.title,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: glass.isDark
+              ? const Color(0x1F1A3348)
+              : const Color(0xAFFFFFFF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: glass.glassBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: glass.accent),
+            const SizedBox(width: 6),
+            Text(
+              title,
+              style: TextStyle(
+                color: glass.textPrimary,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
         ),
       ),

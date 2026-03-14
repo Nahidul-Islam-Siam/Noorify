@@ -143,7 +143,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   }
 
   Future<void> _loadPrayerData({required bool showLoader}) async {
-    final hasExistingPreview = _todaySchedule != null && _tomorrowSchedule != null;
+    final hasExistingPreview =
+        _todaySchedule != null && _tomorrowSchedule != null;
     if (mounted) {
       setState(() {
         _isSyncing = true;
@@ -216,7 +217,8 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
       String label,
       bool usingFallbackLocation,
     })
-  > _resolveCoordinatesAndLabel() async {
+  >
+  _resolveCoordinatesAndLabel() async {
     if (!useDeviceLocationNotifier.value) {
       return (
         latitude: _baitulMukarramLat,
@@ -284,7 +286,10 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
     }
   }
 
-  Future<String> _resolveLocationLabel(double latitude, double longitude) async {
+  Future<String> _resolveLocationLabel(
+    double latitude,
+    double longitude,
+  ) async {
     try {
       final placemarks = await placemarkFromCoordinates(latitude, longitude);
       if (placemarks.isEmpty) return _profileOrFallbackLocationLabel();
@@ -363,12 +368,12 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
   String _localizedPrayer(String key) {
     if (!_isBangla) return key;
     const map = {
-      'Fajr': 'Fajr',
-      'Sunrise': 'Sunrise',
-      'Zuhr': 'Zuhr',
-      'Asr': 'Asr',
-      'Maghrib': 'Maghrib',
-      'Isha': 'Isha',
+      'Fajr': '\u09ab\u099c\u09b0',
+      'Sunrise': '\u09b8\u09c2\u09b0\u09cd\u09af\u09cb\u09a6\u09af\u09bc',
+      'Zuhr': '\u09af\u09cb\u09b9\u09b0',
+      'Asr': '\u0986\u09b8\u09b0',
+      'Maghrib': '\u09ae\u09be\u0997\u09b0\u09bf\u09ac',
+      'Isha': '\u098f\u09b6\u09be',
     };
     return map[key] ?? key;
   }
@@ -393,7 +398,18 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
 
   String _toBanglaDigits(String input) {
     const latin = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-    const bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    const bangla = [
+      '\u09e6',
+      '\u09e7',
+      '\u09e8',
+      '\u09e9',
+      '\u09ea',
+      '\u09eb',
+      '\u09ec',
+      '\u09ed',
+      '\u09ee',
+      '\u09ef',
+    ];
     var output = input;
     for (var i = 0; i < latin.length; i++) {
       output = output.replaceAll(latin[i], bangla[i]);
@@ -409,31 +425,89 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
         key: 'Fajr',
         icon: Icons.wb_twilight_rounded,
         time: today?.fajr,
-        subtitle: _text('Dawn prayer', 'Dawn prayer'),
+        subtitle: _text(
+          'Dawn prayer',
+          '\u09ad\u09cb\u09b0\u09c7\u09b0 \u09b8\u09be\u09b2\u09be\u09a4',
+        ),
       ),
       (
         key: 'Zuhr',
         icon: Icons.wb_sunny_rounded,
         time: today?.dzuhr,
-        subtitle: _text('Midday prayer', 'Midday prayer'),
+        subtitle: _text(
+          'Midday prayer',
+          '\u09a6\u09c1\u09aa\u09c1\u09b0\u09c7\u09b0 \u09b8\u09be\u09b2\u09be\u09a4',
+        ),
       ),
       (
         key: 'Asr',
         icon: Icons.brightness_5_rounded,
         time: today?.asr,
-        subtitle: _text('Afternoon prayer', 'Afternoon prayer'),
+        subtitle: _text(
+          'Afternoon prayer',
+          '\u09ac\u09bf\u0995\u09be\u09b2\u09c7\u09b0 \u09b8\u09be\u09b2\u09be\u09a4',
+        ),
       ),
       (
         key: 'Maghrib',
         icon: Icons.bedtime_rounded,
         time: today?.maghrib,
-        subtitle: _text('Sunset prayer', 'Sunset prayer'),
+        subtitle: _text(
+          'Sunset prayer',
+          '\u09b8\u09c2\u09b0\u09cd\u09af\u09be\u09b8\u09cd\u09a4\u09c7\u09b0 \u09b8\u09be\u09b2\u09be\u09a4',
+        ),
       ),
       (
         key: 'Isha',
         icon: Icons.nightlight_round,
         time: today?.isha,
-        subtitle: _text('Night prayer', 'Night prayer'),
+        subtitle: _text(
+          'Night prayer',
+          '\u09b0\u09be\u09a4\u09c7\u09b0 \u09b8\u09be\u09b2\u09be\u09a4',
+        ),
+      ),
+    ];
+  }
+
+  List<({String label, IconData icon, DateTime? time, bool emphasized})>
+  _dayHighlights() {
+    final today = _todaySchedule;
+    return [
+      (
+        label: _text(
+          'Sehri Ends',
+          '\u09b8\u09c7\u09b9\u09b0\u09bf \u09b6\u09c7\u09b7',
+        ),
+        icon: Icons.nightlight_round,
+        time: today?.fajr,
+        emphasized: false,
+      ),
+      (
+        label: _text(
+          'Sunrise',
+          '\u09b8\u09c2\u09b0\u09cd\u09af\u09cb\u09a6\u09af\u09bc',
+        ),
+        icon: Icons.wb_sunny_outlined,
+        time: today?.sunrise,
+        emphasized: false,
+      ),
+      (
+        label: _text(
+          'Iftar Starts',
+          '\u0987\u09ab\u09a4\u09be\u09b0 \u09b6\u09c1\u09b0\u09c1',
+        ),
+        icon: Icons.restaurant_rounded,
+        time: today?.maghrib,
+        emphasized: true,
+      ),
+      (
+        label: _text(
+          'Isha Starts',
+          '\u098f\u09b6\u09be \u09b6\u09c1\u09b0\u09c1',
+        ),
+        icon: Icons.dark_mode_outlined,
+        time: today?.isha,
+        emphasized: false,
       ),
     ];
   }
@@ -485,7 +559,10 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    _text('Prayer Times', 'Prayer Times'),
+                                    _text(
+                                      'Prayer Times',
+                                      '\u09a8\u09be\u09ae\u09be\u099c\u09c7\u09b0 \u09b8\u09ae\u09df',
+                                    ),
                                     style: TextStyle(
                                       color: glass.textPrimary,
                                       fontSize: 22,
@@ -508,7 +585,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                                     Text(
                                       _text(
                                         'Syncing location and online data...',
-                                        'Syncing location and online data...',
+                                        '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u0993 \u0985\u09a8\u09b2\u09be\u0987\u09a8 \u09a1\u09be\u099f\u09be \u09b8\u09bf\u0982\u0995 \u09b9\u099a\u09cd\u099b\u09c7...',
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -522,24 +599,44 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                                 ],
                               ),
                             ),
-                            IconButton(
-                              onPressed: _isRefreshing ? null : _refresh,
-                              style: IconButton.styleFrom(
-                                backgroundColor: glass.isDark
-                                    ? const Color(0x332EB8E6)
-                                    : const Color(0x221EA8B8),
-                                foregroundColor: glass.accent,
-                              ),
-                              icon: _isRefreshing
-                                  ? SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: glass.accent,
-                                      ),
-                                    )
-                                  : const Icon(Icons.refresh_rounded),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  onPressed: () => Navigator.of(
+                                    context,
+                                  ).pushNamed(RouteNames.islamicCalendar),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: glass.isDark
+                                        ? const Color(0x332EB8E6)
+                                        : const Color(0x221EA8B8),
+                                    foregroundColor: glass.accent,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.calendar_today_rounded,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  onPressed: _isRefreshing ? null : _refresh,
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: glass.isDark
+                                        ? const Color(0x332EB8E6)
+                                        : const Color(0x221EA8B8),
+                                    foregroundColor: glass.accent,
+                                  ),
+                                  icon: _isRefreshing
+                                      ? SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: glass.accent,
+                                          ),
+                                        )
+                                      : const Icon(Icons.refresh_rounded),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -550,7 +647,7 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                         padding: const EdgeInsets.fromLTRB(14, 16, 14, 16),
                         child: _isLoading
                             ? SizedBox(
-                                height: 220,
+                                height: 130,
                                 child: Center(
                                   child: CircularProgressIndicator(
                                     color: glass.accent,
@@ -558,124 +655,135 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                                 ),
                               )
                             : Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(
-                                    width: 210,
-                                    height: 210,
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        SizedBox(
-                                          width: 190,
-                                          height: 190,
-                                          child: CircularProgressIndicator(
-                                            value: 1,
-                                            strokeWidth: 11,
-                                            color: glass.isDark
-                                                ? const Color(0x2248D4EE)
-                                                : const Color(0x44B7DCEB),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          _text(
+                                            'Next Prayer',
+                                            '\u09aa\u09b0\u09ac\u09b0\u09cd\u09a4\u09c0 \u09b8\u09be\u09b2\u09be\u09a4',
+                                          ),
+                                          style: TextStyle(
+                                            color: glass.textSecondary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                        SizedBox(
-                                          width: 190,
-                                          height: 190,
-                                          child: CircularProgressIndicator(
-                                            value: ringProgress,
-                                            strokeWidth: 11,
-                                            strokeCap: StrokeCap.round,
-                                            color: glass.accent,
-                                            backgroundColor:
-                                                Colors.transparent,
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: glass.isDark
+                                              ? const Color(0x222EB8E6)
+                                              : const Color(0x251EA8B8),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                          border: Border.all(
+                                            color: glass.glassBorder,
                                           ),
                                         ),
-                                        Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              _text(
-                                                'Next Prayer',
-                                                'Next Prayer',
-                                              ),
-                                              style: TextStyle(
-                                                color: glass.textSecondary,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              _localizedPrayer(_activePrayer),
-                                              style: TextStyle(
-                                                color: glass.textPrimary,
-                                                fontSize: 28,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              _formatRemaining(),
-                                              style: TextStyle(
-                                                color: glass.accentSoft,
-                                                fontSize: 26,
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 0.3,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              _text(
-                                                'Remaining',
-                                                'Remaining',
-                                              ),
-                                              style: TextStyle(
-                                                color: glass.textMuted,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 4,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: glass.isDark
-                                                    ? const Color(0x222EB8E6)
-                                                    : const Color(0x251EA8B8),
-                                                borderRadius:
-                                                    BorderRadius.circular(999),
-                                                border: Border.all(
-                                                  color: glass.glassBorder,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                _formatTime(_nextPrayerAt),
-                                                style: TextStyle(
-                                                  color: glass.textPrimary,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
+                                        child: Text(
+                                          _localizedPrayer(_activePrayer),
+                                          style: TextStyle(
+                                            color: glass.textPrimary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
-                                      ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _formatRemaining(),
+                                    style: TextStyle(
+                                      color: glass.accentSoft,
+                                      fontSize: 34,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
+                                  Text(
+                                    _text(
+                                      'remaining',
+                                      '\u09ac\u09be\u0995\u09bf',
+                                    ),
+                                    style: TextStyle(
+                                      color: glass.textMuted,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(99),
+                                    child: LinearProgressIndicator(
+                                      value: ringProgress,
+                                      minHeight: 8,
+                                      backgroundColor: glass.isDark
+                                          ? const Color(0x2A9EE7F4)
+                                          : const Color(0x331EA8B8),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        glass.accent,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${_text('At', '\u09b8\u09ae\u09df')}: ${_formatTime(_nextPrayerAt)}',
+                                          style: TextStyle(
+                                            color: glass.textPrimary,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_outlined,
+                                        size: 15,
+                                        color: glass.textMuted,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          _locationLabel,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: glass.textSecondary,
+                                            fontSize: 11.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
                                   if (_usingFallbackLocation ||
                                       _usingOfflineCalculation)
                                     Text(
                                       _usingOfflineCalculation
                                           ? _text(
                                               'Using offline prayer calculation',
-                                              'Using offline prayer calculation',
+                                              '\u0985\u09ab\u09b2\u09be\u0987\u09a8 \u09b8\u09be\u09b2\u09be\u09a4 \u09b9\u09bf\u09b8\u09be\u09ac \u099a\u09b2\u099b\u09c7',
                                             )
                                           : _text(
                                               'Using saved location',
-                                              'Using saved location',
+                                              '\u09b8\u0982\u09b0\u0995\u09cd\u09b7\u09bf\u09a4 \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u09ac\u09cd\u09af\u09ac\u09b9\u09be\u09b0 \u09b9\u099a\u09cd\u099b\u09c7',
                                             ),
                                       style: TextStyle(
                                         color: glass.textSecondary,
@@ -687,28 +795,66 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                               ),
                       ),
                       const SizedBox(height: 12),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _prayerCards().length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                              childAspectRatio: 1.22,
+                      NoorifyGlassCard(
+                        radius: BorderRadius.circular(20),
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _text(
+                                "Today's Schedule",
+                                '\u0986\u099c\u0995\u09c7\u09b0 \u09b8\u09ae\u09df\u09b8\u09c2\u099a\u09bf',
+                              ),
+                              style: TextStyle(
+                                color: glass.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                        itemBuilder: (context, index) {
-                          final item = _prayerCards()[index];
-                          final isActive = item.key == _activePrayer;
-                          return _PrayerTimeCard(
-                            title: _localizedPrayer(item.key),
-                            subtitle: item.subtitle,
-                            time: _formatTime(item.time),
-                            icon: item.icon,
-                            isActive: isActive,
-                          );
-                        },
+                            const SizedBox(height: 10),
+                            ..._prayerCards().map((item) {
+                              final isActive = item.key == _activePrayer;
+                              return _PrayerTimeCard(
+                                title: _localizedPrayer(item.key),
+                                subtitle: item.subtitle,
+                                time: _formatTime(item.time),
+                                icon: item.icon,
+                                isActive: isActive,
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      NoorifyGlassCard(
+                        radius: BorderRadius.circular(20),
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _text(
+                                "Today's Highlights",
+                                '\u0986\u099c\u0995\u09c7\u09b0 \u0997\u09c1\u09b0\u09c1\u09a4\u09cd\u09ac\u09aa\u09c2\u09b0\u09cd\u09a3 \u09b8\u09ae\u09df',
+                              ),
+                              style: TextStyle(
+                                color: glass.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ..._dayHighlights().map(
+                              (item) => _PrayerHighlightTile(
+                                label: item.label,
+                                icon: item.icon,
+                                time: _formatTime(item.time),
+                                emphasized: item.emphasized,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -725,7 +871,32 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                               ).pushNamed(RouteNames.prayerCompass),
                               icon: const Icon(Icons.explore_rounded),
                               label: Text(
-                                _text('Open Qibla', 'Open Qibla'),
+                                _text(
+                                  'Open Qibla',
+                                  '\u0995\u09bf\u09ac\u09b2\u09be \u0996\u09c1\u09b2\u09c1\u09a8',
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size.fromHeight(44),
+                                side: BorderSide(color: glass.glassBorder),
+                                foregroundColor: glass.textPrimary,
+                              ),
+                              onPressed: () => Navigator.of(
+                                context,
+                              ).pushNamed(RouteNames.islamicCalendar),
+                              icon: const Icon(Icons.calendar_month_rounded),
+                              label: Text(
+                                _text(
+                                  'Calendar',
+                                  '\u0995\u09cd\u09af\u09be\u09b2\u09c7\u09a8\u09cd\u09a1\u09be\u09b0',
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -743,7 +914,12 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
                               ),
                               onPressed: _isRefreshing ? null : _refresh,
                               icon: const Icon(Icons.refresh_rounded),
-                              label: Text(_text('Refresh', 'Refresh')),
+                              label: Text(
+                                _text(
+                                  'Refresh',
+                                  '\u09b0\u09bf\u09ab\u09cd\u09b0\u09c7\u09b6',
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -756,6 +932,66 @@ class _PrayerTimesScreenState extends State<PrayerTimesScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PrayerHighlightTile extends StatelessWidget {
+  const _PrayerHighlightTile({
+    required this.label,
+    required this.icon,
+    required this.time,
+    required this.emphasized,
+  });
+
+  final String label;
+  final IconData icon;
+  final String time;
+  final bool emphasized;
+
+  @override
+  Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: emphasized
+            ? (glass.isDark ? const Color(0x2038D4C7) : const Color(0x1A1EA8B8))
+            : (glass.isDark
+                  ? const Color(0x161A3345)
+                  : const Color(0x75FFFFFF)),
+        border: Border.all(
+          color: emphasized
+              ? glass.accent.withValues(alpha: 0.72)
+              : glass.glassBorder.withValues(alpha: 0.7),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: glass.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: glass.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Text(
+            time,
+            style: TextStyle(
+              color: emphasized ? glass.accent : glass.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -779,103 +1015,73 @@ class _PrayerTimeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final glass = NoorifyGlassTheme(context);
-    final activeBg = glass.isDark
-        ? const [Color(0xFF1E353F), Color(0xFF123340)]
-        : const [Color(0xFFE5FAFF), Color(0xFFD8F4FB)];
-    final idleBg = glass.isDark
-        ? const [Color(0xFF121F2E), Color(0xFF0D1824)]
-        : const [Color(0xFFF7FCFF), Color(0xFFEAF4FB)];
-
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
-        gradient: LinearGradient(
-          colors: isActive ? activeBg : idleBg,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        borderRadius: BorderRadius.circular(14),
+        color: isActive
+            ? (glass.isDark ? const Color(0x2038D4C7) : const Color(0x1A1EA8B8))
+            : (glass.isDark
+                  ? const Color(0x161A3345)
+                  : const Color(0x75FFFFFF)),
         border: Border.all(
           color: isActive
-              ? glass.accent.withValues(alpha: 0.7)
-              : glass.glassBorder,
-          width: isActive ? 1.4 : 1,
+              ? glass.accent.withValues(alpha: 0.72)
+              : glass.glassBorder.withValues(alpha: 0.7),
+          width: isActive ? 1.2 : 1,
         ),
-        boxShadow: [
-          if (isActive)
-            BoxShadow(
-              color: glass.accent.withValues(alpha: 0.22),
-              blurRadius: 16,
-              spreadRadius: 0.4,
-              offset: const Offset(0, 8),
-            ),
-        ],
       ),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: glass.accent.withValues(alpha: isActive ? 0.22 : 0.12),
-                ),
-                child: Icon(icon, size: 17, color: glass.accent),
-              ),
-              const Spacer(),
-              if (isActive)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: glass.accent.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'Active',
-                    style: TextStyle(
-                      color: glass.accent,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-            ],
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: glass.accent.withValues(alpha: isActive ? 0.22 : 0.14),
+            ),
+            child: Icon(icon, size: 19, color: glass.accent),
           ),
-          const Spacer(),
-          Text(
-            title,
-            style: TextStyle(
-              color: glass.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: glass.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: glass.textSecondary,
+                    fontSize: 11.4,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
           Text(
             time,
             style: TextStyle(
               color: isActive ? glass.accent : glass.textPrimary,
-              fontSize: 20,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 1),
-          Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: glass.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          if (isActive) ...[
+            const SizedBox(width: 8),
+            Icon(Icons.check_circle_rounded, size: 16, color: glass.accent),
+          ],
         ],
       ),
     );
