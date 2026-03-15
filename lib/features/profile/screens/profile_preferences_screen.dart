@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -229,7 +229,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
               title: Text(
                 _text(
                   'Change Password',
-                  'পাস�??o�Yার্ড পরিবর্তন',
+                  '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09aa\u09b0\u09bf\u09ac\u09b0\u09cd\u09a4\u09a8',
                 ),
               ),
               content: Column(
@@ -241,7 +241,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     decoration: InputDecoration(
                       labelText: _text(
                         'Current Password',
-                        'বর্তমান পাস�??o�Yার্ড',
+                        '\u09ac\u09b0\u09cd\u09a4\u09ae\u09be\u09a8 \u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1',
                       ),
                       suffixIcon: IconButton(
                         onPressed: () {
@@ -264,7 +264,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     decoration: InputDecoration(
                       labelText: _text(
                         'New Password',
-                        'নতুন পাস�??o�Yার্ড',
+                        '\u09a8\u09a4\u09c1\u09a8 \u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1',
                       ),
                       suffixIcon: IconButton(
                         onPressed: () {
@@ -285,7 +285,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     decoration: InputDecoration(
                       labelText: _text(
                         'Confirm Password',
-                        'পাস�??o�Yার্ড নিশ্�sিত �???রুন',
+                        '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09a8\u09bf\u09b6\u09cd\u099a\u09bf\u09a4 \u0995\u09b0\u09c1\u09a8',
                       ),
                       suffixIcon: IconButton(
                         onPressed: () {
@@ -308,7 +308,9 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                   onPressed: submitting
                       ? null
                       : () => Navigator.of(dialogContext).pop(false),
-                  child: Text(_text('Cancel', '\u09ac\u09be\u09a4\u09bf\u09b2')),
+                  child: Text(
+                    _text('Cancel', '\u09ac\u09be\u09a4\u09bf\u09b2'),
+                  ),
                 ),
                 FilledButton(
                   onPressed: submitting ? null : submitChange,
@@ -318,7 +320,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(_text('Update', '�???পড�???�Y')),
+                      : Text(_text('Update', '\u0986\u09aa\u09a1\u09c7\u099f')),
                 ),
               ],
             );
@@ -362,6 +364,22 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     return value;
   }
 
+  Future<void> _setAppLanguage(AppLanguage language) async {
+    if (appLanguageNotifier.value == language) return;
+    appLanguageNotifier.value = language;
+    await saveAppPreferences();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          language == AppLanguage.bangla
+              ? '\u0985\u09cd\u09af\u09be\u09aa \u09ad\u09be\u09b7\u09be \u09ac\u09be\u0982\u09b2\u09be \u0995\u09b0\u09be \u09b9\u09df\u09c7\u099b\u09c7'
+              : 'App language switched to English',
+        ),
+      ),
+    );
+  }
+
   Future<void> _setDarkTheme(bool value) async {
     darkThemeEnabledNotifier.value = value;
     await saveAppPreferences();
@@ -391,7 +409,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             content: Text(
               _text(
                 'Please enable phone location service first',
-                'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
+                '\u09aa\u09cd\u09b0\u09a5\u09ae\u09c7 \u09ab\u09cb\u09a8\u09c7\u09b0 \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u09b8\u09be\u09b0\u09cd\u09ad\u09bf\u09b8 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09c1\u09a8',
               ),
             ),
           ),
@@ -413,7 +431,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             content: Text(
               _text(
                 'Location permission is permanently denied. Enable it in app settings.',
-                'ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â€šÂ¬ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â§ÃƒÂ Ã‚Â¥Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Âª ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¥Ã‚Â¤',
+                '\u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u09aa\u09be\u09b0\u09ae\u09bf\u09b6\u09a8 \u09b8\u09cd\u09a5\u09be\u09df\u09c0\u09ad\u09be\u09ac\u09c7 \u09ac\u09a8\u09cd\u09a7\u0964 \u0985\u09cd\u09af\u09be\u09aa \u09b8\u09c7\u099f\u09bf\u0982\u09b8 \u09a5\u09c7\u0995\u09c7 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09c1\u09a8\u0964',
               ),
             ),
           ),
@@ -429,7 +447,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
             content: Text(
               _text(
                 'Location permission is needed for accurate timings',
-                'ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¨',
+                '\u09b8\u09a0\u09bf\u0995 \u09b8\u09ae\u09df\u09c7\u09b0 \u099c\u09a8\u09cd\u09af \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u09aa\u09be\u09b0\u09ae\u09bf\u09b6\u09a8 \u09aa\u09cd\u09b0\u09df\u09cb\u099c\u09a8',
               ),
             ),
           ),
@@ -445,7 +463,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
           content: Text(
             _text(
               'Device location enabled',
-              'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬ÂºÃƒÂ Ã‚Â§Ã¢â‚¬Â¡',
+              '\u09a1\u09bf\u09ad\u09be\u0987\u09b8 \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u09b9\u09df\u09c7\u099b\u09c7',
             ),
           ),
         ),
@@ -459,7 +477,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
           content: Text(
             _text(
               'Unable to enable location on this device right now',
-              'ÃƒÂ Ã‚Â¦Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬ÂºÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾',
+              '\u098f\u0987 \u09a1\u09bf\u09ad\u09be\u0987\u09b8\u09c7 \u098f\u0996\u09a8 \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09be \u09af\u09be\u099a\u09cd\u099b\u09c7 \u09a8\u09be',
             ),
           ),
         ),
@@ -536,7 +554,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
     final selected = await _pickOption(
       title: _text(
         'Hifz Repeat Count',
-        'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œ ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾',
+        '\u09b9\u09bf\u09ab\u099c \u09b0\u09bf\u09aa\u09bf\u099f \u09b8\u0982\u0996\u09cd\u09af\u09be',
       ),
       options: const ['1x', '3x', '5x', '10x'],
       current: current,
@@ -599,7 +617,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                 title: Text(
                   _text(
                     'Font Size',
-                    'ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…â€œ',
+                    '\u09ab\u09a8\u09cd\u099f \u09b8\u09be\u0987\u099c',
                   ),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
@@ -789,7 +807,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       child: Text(
                         _text(
                           'Profile',
-                          'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â²',
+                          '\u09aa\u09cd\u09b0\u09cb\u09ab\u09be\u0987\u09b2',
                         ),
                         style: TextStyle(
                           fontSize: 22,
@@ -879,13 +897,18 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ],
                       ),
                     ),
-                    _sectionLabel(_text('Nearby', '�???শ�???পাশ�???')),
+                    _sectionLabel(
+                      _text(
+                        'Nearby',
+                        '\u0986\u09b6\u09c7\u09aa\u09be\u09b6\u09c7',
+                      ),
+                    ),
                     _sectionCard(
                       child: _rowTile(
                         icon: Icons.mosque_rounded,
                         title: _text(
                           'Find Mosque',
-                          'মস�?"িদ �??"ুঁ�?"ুন',
+                          '\u09ae\u09b8\u099c\u09bf\u09a6 \u0996\u09c1\u0981\u099c\u09c1\u09a8',
                         ),
                         subtitle: _text(
                           'Open nearest mosque and sync recent results',
@@ -899,7 +922,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                       ),
                     ),
                     _sectionLabel(
-                      _text('General', 'ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â§ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â£'),
+                      _text('General', '\u09b8\u09be\u09a7\u09be\u09b0\u09a3'),
                     ),
                     _sectionCard(
                       child: Column(
@@ -911,10 +934,41 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.text_fields_rounded,
                                 title: _text(
                                   'Font Size',
-                                  'ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…â€œ',
+                                  '\u09ab\u09a8\u09cd\u099f \u09b8\u09be\u0987\u099c',
                                 ),
                                 subtitle: _fontSizeLabel(size),
                                 onTap: _selectFontSize,
+                              );
+                            },
+                          ),
+                          Divider(height: 1, color: glass.glassBorder),
+                          ValueListenableBuilder<AppLanguage>(
+                            valueListenable: appLanguageNotifier,
+                            builder: (context, language, _) {
+                              final isBangla = language == AppLanguage.bangla;
+                              return _switchRow(
+                                icon: Icons.language_rounded,
+                                title: _text(
+                                  'Language Select',
+                                  '\u09ad\u09be\u09b7\u09be \u09a8\u09bf\u09b0\u09cd\u09ac\u09be\u099a\u09a8',
+                                ),
+                                subtitle: _text(
+                                  isBangla
+                                      ? 'Current: Bangla'
+                                      : 'Current: English',
+                                  isBangla
+                                      ? '\u09ac\u09b0\u09cd\u09a4\u09ae\u09be\u09a8: \u09ac\u09be\u0982\u09b2\u09be'
+                                      : '\u09ac\u09b0\u09cd\u09a4\u09ae\u09be\u09a8: \u0987\u0982\u09b0\u09c7\u099c\u09bf',
+                                ),
+                                value: isBangla,
+                                onChanged: (value) {
+                                  _setAppLanguage(
+                                    value
+                                        ? AppLanguage.bangla
+                                        : AppLanguage.english,
+                                  );
+                                },
+                                onTap: () {},
                               );
                             },
                           ),
@@ -923,7 +977,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                             icon: Icons.lock_outline_rounded,
                             title: _text(
                               'Change Password',
-                              'পাস�??o�Yার্ড পরিবর্তন',
+                              '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09aa\u09b0\u09bf\u09ac\u09b0\u09cd\u09a4\u09a8',
                             ),
                             subtitle: _text(
                               'Update your account password',
@@ -939,11 +993,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.dark_mode_outlined,
                                 title: _text(
                                   'Dark Theme',
-                                  'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â®',
+                                  '\u09a1\u09be\u09b0\u09cd\u0995 \u09a5\u09bf\u09ae',
                                 ),
                                 subtitle: _text(
                                   'Switch to dark color scheme',
-                                  'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â® ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u09a1\u09be\u09b0\u09cd\u0995 \u0995\u09be\u09b2\u09be\u09b0 \u09b8\u09cd\u0995\u09bf\u09ae \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09c1\u09a8',
                                 ),
                                 value: enabled,
                                 onChanged: _setDarkTheme,
@@ -958,7 +1012,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.vibration_rounded,
                                 title: _text(
                                   'Vibration',
-                                  'ভা�???ব্র�???শন',
+                                  '\u09ad\u09be\u0987\u09ac\u09cd\u09b0\u09c7\u09b6\u09a8',
                                 ),
                                 subtitle: _text(
                                   'Enable vibration feedback in app actions',
@@ -977,11 +1031,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.my_location_rounded,
                                 title: _text(
                                   'Use Device Location',
-                                  'ÃƒÂ Ã‚Â¦Ã‚Â¡ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°',
+                                  '\u09a1\u09bf\u09ad\u09be\u0987\u09b8 \u09b2\u09cb\u0995\u09c7\u09b6\u09a8 \u09ac\u09cd\u09af\u09ac\u09b9\u09be\u09b0',
                                 ),
                                 subtitle: _text(
                                   'Accurate prayer/sehri/iftar by your area',
-                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¤/ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿/ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼',
+                                  '\u0986\u09aa\u09a8\u09be\u09b0 \u098f\u09b2\u09be\u0995\u09be\u09b0 \u09b8\u09a0\u09bf\u0995 \u09b8\u09be\u09b2\u09be\u09a4/\u09b8\u09c7\u09b9\u09b0\u09bf/\u0987\u09ab\u09a4\u09be\u09b0 \u09b8\u09ae\u09df',
                                 ),
                                 value: enabled,
                                 onChanged: _setUseDeviceLocation,
@@ -994,7 +1048,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     _sectionLabel(
                       _text(
                         'Prayer Setting',
-                        'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡',
+                        '\u09aa\u09cd\u09b0\u09be\u09b0\u09cd\u09a5\u09a8\u09be \u09b8\u09c7\u099f\u09bf\u0982',
                       ),
                     ),
                     _sectionCard(
@@ -1007,11 +1061,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.short_text_rounded,
                                 title: _text(
                                   'Show English Transliteration',
-                                  'Show English Transliteration',
+                                  '\u0987\u0982\u09b0\u09c7\u099c\u09bf \u0989\u099a\u09cd\u099a\u09be\u09b0\u09a3 \u09a6\u09c7\u0996\u09be\u09a8',
                                 ),
                                 subtitle: _text(
                                   'Display English transliteration while reading Quran',
-                                  'Display English transliteration while reading Quran',
+                                  '\u0995\u09c1\u09b0\u0986\u09a8 \u09aa\u09dc\u09be\u09b0 \u09b8\u09ae\u09df \u0987\u0982\u09b0\u09c7\u099c\u09bf \u0989\u099a\u09cd\u099a\u09be\u09b0\u09a3 \u09a6\u09c7\u0996\u09be\u09a8',
                                 ),
                                 value: enabled,
                                 onChanged: _setShowLatinLetters,
@@ -1027,7 +1081,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.translate_rounded,
                                 title: _text(
                                   'Show Translation',
-                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u0985\u09a8\u09c1\u09ac\u09be\u09a6 \u09a6\u09c7\u0996\u09be\u09a8',
                                 ),
                                 subtitle: _translationLanguageLabel(language),
                                 value: enabled,
@@ -1056,11 +1110,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.menu_book_outlined,
                                 title: _text(
                                   'Show Tajweed',
-                                  'ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¦ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u09a4\u09be\u099c\u09ac\u09c0\u09a6 \u09a6\u09c7\u0996\u09be\u09a8',
                                 ),
                                 subtitle: _text(
                                   'Click to view the tajweed detail',
-                                  'ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u09a4\u09be\u099c\u09ac\u09c0\u09a6\u09c7\u09b0 \u09ac\u09bf\u09b8\u09cd\u09a4\u09be\u09b0\u09bf\u09a4 \u09a6\u09c7\u0996\u09a4\u09c7 \u0995\u09cd\u09b2\u09bf\u0995 \u0995\u09b0\u09c1\u09a8',
                                 ),
                                 value: enabled,
                                 onChanged: _setShowTajweed,
@@ -1075,14 +1129,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.person_outline,
                                 title: _text(
                                   'Translator',
-                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢',
+                                  '\u0985\u09a8\u09c1\u09ac\u09be\u09a6\u0995',
                                 ),
                                 subtitle: translator,
                                 onTap: () async {
                                   final selected = await _pickOption(
                                     title: _text(
                                       'Translator',
-                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¦ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢',
+                                      '\u0985\u09a8\u09c1\u09ac\u09be\u09a6\u0995',
                                     ),
                                     options: const [
                                       'Dr. Mustafa Khattab',
@@ -1109,14 +1163,14 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.mic_none_rounded,
                                 title: _text(
                                   'Reciters',
-                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â€šÂ¬',
+                                  '\u0995\u09be\u09b0\u09c0',
                                 ),
                                 subtitle: reciter,
                                 onTap: () async {
                                   final selected = await _pickOption(
                                     title: _text(
                                       'Reciter',
-                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã¢â€šÂ¬',
+                                      '\u0995\u09be\u09b0\u09c0',
                                     ),
                                     options: const [
                                       'Mishary Rashid Alafasy',
@@ -1143,7 +1197,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.notifications_active_outlined,
                                 title: _text(
                                   'Adzan Notification',
-                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u0986\u09af\u09be\u09a8 \u09a8\u09cb\u099f\u09bf\u09ab\u09bf\u0995\u09c7\u09b6\u09a8',
                                 ),
                                 subtitle: voice,
                                 value: enabled,
@@ -1153,7 +1207,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                   final selected = await _pickOption(
                                     title: _text(
                                       'Adzan Voice',
-                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã‚Â­ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¸',
+                                      '\u0986\u09af\u09be\u09a8\u09c7\u09b0 \u09ad\u09df\u09c7\u09b8',
                                     ),
                                     options: const [
                                       'Hanan Attaki',
@@ -1180,7 +1234,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.alarm_on_outlined,
                                 title: _text(
                                   'Imsak Notification',
-                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u0987\u09ae\u09b8\u09be\u0995 \u09a8\u09cb\u099f\u09bf\u09ab\u09bf\u0995\u09c7\u09b6\u09a8',
                                 ),
                                 subtitle: voice,
                                 value: enabled,
@@ -1190,7 +1244,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                   final selected = await _pickOption(
                                     title: _text(
                                       'Imsak Tone',
-                                      'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                      '\u0987\u09ae\u09b8\u09be\u0995 \u099f\u09cb\u09a8',
                                     ),
                                     options: const [
                                       'Default',
@@ -1214,7 +1268,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                     _sectionLabel(
                       _text(
                         'Quran Learning',
-                        'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¨ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡',
+                        '\u0995\u09c1\u09b0\u0986\u09a8 \u09b2\u09be\u09b0\u09cd\u09a8\u09bf\u0982',
                       ),
                     ),
                     _sectionCard(
@@ -1227,11 +1281,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                 icon: Icons.self_improvement_outlined,
                                 title: _text(
                                   'Enable Hifz Mode',
-                                  'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œ ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¡ ÃƒÂ Ã‚Â¦Ã…Â¡ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u09b9\u09bf\u09ab\u099c \u09ae\u09cb\u09a1 \u099a\u09be\u09b2\u09c1 \u0995\u09b0\u09c1\u09a8',
                                 ),
                                 subtitle: _text(
                                   'Use repeat mode for ayah memorization',
-                                  'ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¤ ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¥ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â¦Ã‚Â¨ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â®ÃƒÂ Ã‚Â§Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¦Ã‚Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â° ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                  '\u0986\u09df\u09be\u09a4 \u09ae\u09c1\u0996\u09b8\u09cd\u09a5\u09c7\u09b0 \u099c\u09a8\u09cd\u09af \u09b0\u09bf\u09aa\u09bf\u099f \u09ae\u09cb\u09a1 \u09ac\u09cd\u09af\u09ac\u09b9\u09be\u09b0 \u0995\u09b0\u09c1\u09a8',
                                 ),
                                 value: enabled,
                                 onChanged: _setHifzMode,
@@ -1245,11 +1299,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                       icon: Icons.repeat_rounded,
                                       title: _text(
                                         'Hifz Repeat Count',
-                                        'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œ ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã…Â¸ ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾',
+                                        '\u09b9\u09bf\u09ab\u099c \u09b0\u09bf\u09aa\u09bf\u099f \u09b8\u0982\u0996\u09cd\u09af\u09be',
                                       ),
                                       subtitle: _text(
                                         '${repeatCount}x per ayah',
-                                        'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â¦Ã‚Â¿ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¼ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¤ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ${repeatCount}x',
+                                        '\u09aa\u09cd\u09b0\u09a4\u09bf \u0986\u09df\u09be\u09a4\u09c7 ${repeatCount}x',
                                       ),
                                       onTap: _selectHifzRepeatCount,
                                     );
@@ -1264,11 +1318,11 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                                       icon: Icons.visibility_off_outlined,
                                       title: _text(
                                         'Hide Bangla in Hifz',
-                                        'ÃƒÂ Ã‚Â¦Ã‚Â¹ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â«ÃƒÂ Ã‚Â¦Ã…â€œÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã‚Â¾ ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                        '\u09b9\u09bf\u09ab\u099c\u09c7 \u09ac\u09be\u0982\u09b2\u09be \u09b2\u09c1\u0995\u09be\u09a8',
                                       ),
                                       subtitle: _text(
                                         'Show Arabic only while practicing',
-                                        'ÃƒÂ Ã‚Â¦Ã‚ÂªÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â¯ÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¦Ã…Â¸ÃƒÂ Ã‚Â¦Ã‚Â¿ÃƒÂ Ã‚Â¦Ã‚Â¸ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¦Ã‚Â¶ÃƒÂ Ã‚Â§Ã‚ÂÃƒÂ Ã‚Â¦Ã‚Â§ÃƒÂ Ã‚Â§Ã‚Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã‚Â°ÃƒÂ Ã‚Â¦Ã‚Â¬ÃƒÂ Ã‚Â¦Ã‚Â¿ ÃƒÂ Ã‚Â¦Ã‚Â¦ÃƒÂ Ã‚Â§Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¦Ã¢â‚¬â€œÃƒÂ Ã‚Â¦Ã‚Â¾ÃƒÂ Ã‚Â¦Ã‚Â¨',
+                                        '\u09aa\u09cd\u09b0\u09cd\u09af\u09be\u0995\u099f\u09bf\u09b8\u09c7 \u09b6\u09c1\u09a7\u09c1 \u0986\u09b0\u09ac\u09bf \u09a6\u09c7\u0996\u09be\u09a8',
                                       ),
                                       value: hideBangla,
                                       onChanged: _setHifzHideBanglaMeaning,
@@ -1289,14 +1343,17 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         return Column(
                           children: [
                             _sectionLabel(
-                              _text('Admin', '�???্যাডমিন'),
+                              _text(
+                                'Admin',
+                                '\u0985\u09cd\u09af\u09be\u09a1\u09ae\u09bf\u09a8',
+                              ),
                             ),
                             _sectionCard(
                               child: _rowTile(
                                 icon: Icons.admin_panel_settings_outlined,
                                 title: _text(
                                   'Admin Panel',
-                                  '�???্যাডমিন প্যান�???ল',
+                                  '\u0985\u09cd\u09af\u09be\u09a1\u09ae\u09bf\u09a8 \u09aa\u09cd\u09af\u09be\u09a8\u09c7\u09b2',
                                 ),
                                 subtitle: _text(
                                   'Manage app announcements and modal banners',
@@ -1331,10 +1388,7 @@ class _ProfilePreferencesScreenState extends State<ProfilePreferencesScreen> {
                         ),
                         icon: const Icon(Icons.logout_rounded, size: 14),
                         label: Text(
-                          _text(
-                            'Log Out',
-                            'ÃƒÂ Ã‚Â¦Ã‚Â²ÃƒÂ Ã‚Â¦Ã¢â‚¬â€ ÃƒÂ Ã‚Â¦Ã¢â‚¬Â ÃƒÂ Ã‚Â¦Ã¢â‚¬Â°ÃƒÂ Ã‚Â¦Ã…Â¸',
-                          ),
+                          _text('Log Out', '\u09b2\u0997 \u0986\u0989\u099f'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -1379,8 +1433,3 @@ class ValueListenableBuilder2<A, B> extends StatelessWidget {
     );
   }
 }
-
-
-
-
-

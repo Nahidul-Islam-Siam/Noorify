@@ -84,7 +84,15 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   int get _hifzRepeatCount => hifzRepeatCountNotifier.value;
   bool get _showTranslation => showTranslationNotifier.value;
   String get _translationLanguage => translationLanguageNotifier.value;
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
   bool get _isDarkTheme => Theme.of(context).brightness == Brightness.dark;
+
+  String _t(String en, String bn) {
+    if (!_isBangla) return en;
+    final repaired = _repairMojibake(bn);
+    if (_looksMojibake(repaired)) return en;
+    return repaired;
+  }
 
   Color get _bgTop =>
       _isDarkTheme ? const Color(0xFF081522) : const Color(0xFFF7FBFF);
@@ -159,6 +167,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
   @override
   void initState() {
     super.initState();
+    appLanguageNotifier.addListener(_onReadingPreferenceChanged);
     showTranslationNotifier.addListener(_onReadingPreferenceChanged);
     translationLanguageNotifier.addListener(_onReadingPreferenceChanged);
     _bindAudioStreams();
@@ -168,6 +177,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
 
   @override
   void dispose() {
+    appLanguageNotifier.removeListener(_onReadingPreferenceChanged);
     showTranslationNotifier.removeListener(_onReadingPreferenceChanged);
     translationLanguageNotifier.removeListener(_onReadingPreferenceChanged);
     _playerStateSub?.cancel();
@@ -331,14 +341,23 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       if (!mounted) return;
       if (fromCache) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Showing offline saved Surah content.')),
+          SnackBar(
+            content: Text(
+              _t(
+                'Showing offline saved Surah content.',
+                'অফলাইনে সেভ করা সূরা কনটেন্ট দেখানো হচ্ছে।',
+              ),
+            ),
+          ),
         );
       }
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error =
-            'Could not load Surah details. Please connect to internet once and try again.';
+        _error = _t(
+          'Could not load Surah details. Please connect to internet once and try again.',
+          'সূরার বিস্তারিত লোড করা যায়নি। একবার ইন্টারনেটে যুক্ত হয়ে আবার চেষ্টা করুন।',
+        );
         _isLoading = false;
       });
     }
@@ -606,7 +625,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Ayah ${ayahNo.toString()} Bookmark',
+                '${_t('Ayah', 'আয়াত')} ${_toBanglaDigits(ayahNo.toString())} ${_t('Bookmark', 'বুকমার্ক')}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
@@ -618,7 +637,10 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                 controller: noteController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: 'Add your note for this ayah...',
+                  hintText: _t(
+                    'Add your note for this ayah...',
+                    'এই আয়াতের জন্য আপনার নোট লিখুন...',
+                  ),
                   filled: true,
                   fillColor: const Color(0xFFF8FBFC),
                   border: OutlineInputBorder(
@@ -638,7 +660,7 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                     OutlinedButton.icon(
                       onPressed: () => Navigator.of(sheetContext).pop('remove'),
                       icon: const Icon(Icons.delete_outline_rounded),
-                      label: const Text('Remove'),
+                      label: Text(_t('Remove', 'মুছুন')),
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -647,7 +669,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
                       onPressed: () => Navigator.of(sheetContext).pop('save'),
                       icon: const Icon(Icons.bookmark_rounded),
                       label: Text(
-                        existing == null ? 'Save Bookmark' : 'Update',
+                        existing == null
+                            ? _t('Save Bookmark', 'বুকমার্ক সেভ করুন')
+                            : _t('Update', 'আপডেট করুন'),
                       ),
                     ),
                   ),
@@ -670,9 +694,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         noteController.dispose();
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Bookmark removed')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_t('Bookmark removed', 'বুকমার্ক সরানো হয়েছে'))),
+      );
       noteController.dispose();
       return;
     }
@@ -683,7 +707,9 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       noteController.dispose();
       return;
     }
-    final message = note.isEmpty ? 'Ayah bookmarked' : 'Bookmark note saved';
+    final message = note.isEmpty
+        ? _t('Ayah bookmarked', 'আয়াত বুকমার্ক করা হয়েছে')
+        : _t('Bookmark note saved', 'বুকমার্ক নোট সেভ হয়েছে');
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -695,7 +721,11 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       ..sort((a, b) => a.ayahNo.compareTo(b.ayahNo));
     if (items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No bookmarks in this surah')),
+        SnackBar(
+          content: Text(
+            _t('No bookmarks in this surah', 'এই সূরায় কোনো বুকমার্ক নেই'),
+          ),
+        ),
       );
       return;
     }
@@ -824,7 +854,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final reciter = _selectedReciter;
     if (reciter == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No audio source found for this Surah.')),
+        SnackBar(
+          content: Text(
+            _t(
+              'No audio source found for this Surah.',
+              'এই সূরার জন্য কোনো অডিও সোর্স পাওয়া যায়নি।',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -850,8 +887,13 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       if (!mounted) return;
       setState(() => _isPreparingAudio = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to play audio. Please check internet.'),
+        SnackBar(
+          content: Text(
+            _t(
+              'Unable to play audio. Please check internet.',
+              'অডিও চালানো যাচ্ছে না। ইন্টারনেট সংযোগ পরীক্ষা করুন।',
+            ),
+          ),
         ),
       );
     }
@@ -872,7 +914,14 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
     final reciter = _selectedReciter;
     if (reciter == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Audio not available for this surah.')),
+        SnackBar(
+          content: Text(
+            _t(
+              'Audio not available for this surah.',
+              'এই সূরার জন্য অডিও পাওয়া যাচ্ছে না।',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -949,8 +998,13 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
       if (!mounted) return;
       setState(() => _isPreparingAudio = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to play single ayah audio right now.'),
+        SnackBar(
+          content: Text(
+            _t(
+              'Unable to play single ayah audio right now.',
+              'এই মুহূর্তে একক আয়াতের অডিও চালানো যাচ্ছে না।',
+            ),
+          ),
         ),
       );
     }
@@ -971,15 +1025,21 @@ class _SurahDetailScreenState extends State<SurahDetailScreen> {
         _didDownloadAudio = true;
       });
       final fileName = path.split('\\').last.split('/').last;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Audio saved: $fileName')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _t('Audio saved: $fileName', 'অডিও সেভ হয়েছে: $fileName'),
+          ),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _isDownloadingAudio = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Audio download failed')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_t('Audio download failed', 'অডিও ডাউনলোড ব্যর্থ')),
+        ),
+      );
     }
   }
 

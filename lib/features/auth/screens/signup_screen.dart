@@ -30,8 +30,23 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _saveInfo = true;
   bool _isLoading = false;
 
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+  String _text(String en, String bn) => _isBangla ? bn : en;
+
+  @override
+  void initState() {
+    super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
+  }
+
+  void _onLanguageChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -121,7 +136,7 @@ class _SignupScreenState extends State<SignupScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
-            'OR',
+            _text('OR', '\u0985\u09a5\u09ac\u09be'),
             style: TextStyle(
               color: glass.textMuted,
               fontSize: 11,
@@ -145,7 +160,10 @@ class _SignupScreenState extends State<SignupScreen> {
     final online = await NetworkUtils.hasInternet();
     if (!online) {
       _showMessage(
-        'No internet connection. Please check network and try again.',
+        _text(
+          'No internet connection. Please check network and try again.',
+          '\u0987\u09a8\u09cd\u099f\u09be\u09b0\u09a8\u09c7\u099f \u09b8\u0982\u09af\u09cb\u0997 \u09a8\u09c7\u0987\u0964 \u09a8\u09c7\u099f\u0993\u09df\u09be\u09b0\u09cd\u0995 \u099a\u09c7\u0995 \u0995\u09b0\u09c7 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
       );
       return false;
     }
@@ -158,12 +176,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<
-    ({
-      String name,
-      AppLanguage language,
-      bool prayerAlerts,
-      bool mealAlerts,
-    })?
+    ({String name, AppLanguage language, bool prayerAlerts, bool mealAlerts})?
   >
   _promptGuestQuickSetup() async {
     final controller = TextEditingController();
@@ -172,38 +185,55 @@ class _SignupScreenState extends State<SignupScreen> {
     var mealAlerts =
         sehriAlertEnabledNotifier.value || iftarAlertEnabledNotifier.value;
 
-    final result = await showDialog<
-      ({String name, AppLanguage language, bool prayerAlerts, bool mealAlerts})?
-    >(
+    final result = await showDialog<({String name, AppLanguage language, bool prayerAlerts, bool mealAlerts})?>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
-              title: const Text('Guest Quick Setup'),
+              title: Text(
+                _text(
+                  'Guest Quick Setup',
+                  '\u0997\u09c7\u09b8\u09cd\u099f \u0995\u09cd\u09ac\u09bf\u0995 \u09b8\u09c7\u099f\u0986\u09aa',
+                ),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'You can set these now and change later from Profile.',
-                      style: TextStyle(fontSize: 13),
+                    Text(
+                      _text(
+                        'You can set these now and change later from Profile.',
+                        '\u098f\u0997\u09c1\u09b2\u09cb \u098f\u0996\u09a8 \u09b8\u09c7\u099f \u0995\u09b0\u09c1\u09a8, \u09aa\u09b0\u09c7 \u09aa\u09cd\u09b0\u09cb\u09ab\u09be\u0987\u09b2 \u09a5\u09c7\u0995\u09c7 \u09ac\u09a6\u09b2\u09be\u09a4\u09c7 \u09aa\u09be\u09b0\u09ac\u09c7\u09a8\u0964',
+                      ),
+                      style: const TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: controller,
                       textInputAction: TextInputAction.next,
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Your name (optional)',
-                        hintText: 'e.g. Siam',
+                      decoration: InputDecoration(
+                        labelText: _text(
+                          'Your name (optional)',
+                          '\u0986\u09aa\u09a8\u09be\u09b0 \u09a8\u09be\u09ae (\u0985\u099a\u09cd\u099b\u09bf\u0995)',
+                        ),
+                        hintText: _text(
+                          'e.g. Siam',
+                          '\u09af\u09c7\u09ae\u09a8: \u09b8\u09bf\u09df\u09be\u09ae',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<AppLanguage>(
                       initialValue: language,
-                      decoration: const InputDecoration(labelText: 'Language'),
+                      decoration: InputDecoration(
+                        labelText: _text(
+                          'Language',
+                          '\u09ad\u09be\u09b7\u09be',
+                        ),
+                      ),
                       items: const [
                         DropdownMenuItem(
                           value: AppLanguage.bangla,
@@ -223,16 +253,36 @@ class _SignupScreenState extends State<SignupScreen> {
                     SwitchListTile(
                       value: prayerAlerts,
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Adhan / Prayer alert'),
-                      subtitle: const Text('Play prayer notifications'),
+                      title: Text(
+                        _text(
+                          'Adhan / Prayer alert',
+                          '\u0986\u09af\u09be\u09a8 / \u09a8\u09be\u09ae\u09be\u099c \u098f\u09b2\u09be\u09b0\u09cd\u099f',
+                        ),
+                      ),
+                      subtitle: Text(
+                        _text(
+                          'Play prayer notifications',
+                          '\u09a8\u09be\u09ae\u09be\u099c\u09c7\u09b0 \u09a8\u09cb\u099f\u09bf\u09ab\u09bf\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u09b0\u09be\u0996\u09c1\u09a8',
+                        ),
+                      ),
                       onChanged: (value) =>
                           setDialogState(() => prayerAlerts = value),
                     ),
                     SwitchListTile(
                       value: mealAlerts,
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Sehri / Iftar alert'),
-                      subtitle: const Text('Meal time reminder notifications'),
+                      title: Text(
+                        _text(
+                          'Sehri / Iftar alert',
+                          '\u09b8\u09c7\u09b9\u09b0\u09bf / \u0987\u09ab\u09a4\u09be\u09b0 \u098f\u09b2\u09be\u09b0\u09cd\u099f',
+                        ),
+                      ),
+                      subtitle: Text(
+                        _text(
+                          'Meal time reminder notifications',
+                          '\u0996\u09be\u09ac\u09be\u09b0\u09c7\u09b0 \u09b8\u09ae\u09df\u09c7\u09b0 \u09b0\u09bf\u09ae\u09be\u0987\u09a8\u09cd\u09a1\u09be\u09b0 \u09a8\u09cb\u099f\u09bf\u09ab\u09bf\u0995\u09c7\u09b6\u09a8',
+                        ),
+                      ),
                       onChanged: (value) =>
                           setDialogState(() => mealAlerts = value),
                     ),
@@ -242,7 +292,9 @@ class _SignupScreenState extends State<SignupScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(null),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    _text('Cancel', '\u09ac\u09be\u09a4\u09bf\u09b2'),
+                  ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop((
@@ -253,7 +305,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         sehriAlertEnabledNotifier.value ||
                         iftarAlertEnabledNotifier.value,
                   )),
-                  child: const Text('Skip'),
+                  child: Text(_text('Skip', '\u09b8\u09cd\u0995\u09bf\u09aa')),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(dialogContext).pop((
@@ -262,7 +314,12 @@ class _SignupScreenState extends State<SignupScreen> {
                     prayerAlerts: prayerAlerts,
                     mealAlerts: mealAlerts,
                   )),
-                  child: const Text('Continue'),
+                  child: Text(
+                    _text(
+                      'Continue',
+                      '\u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8',
+                    ),
+                  ),
                 ),
               ],
             );
@@ -301,17 +358,32 @@ class _SignupScreenState extends State<SignupScreen> {
     final confirm = _confirmPasswordController.text;
 
     if (email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      _showMessage('Please complete all fields.');
+      _showMessage(
+        _text(
+          'Please complete all fields.',
+          '\u09b8\u09ac \u0998\u09b0 \u09aa\u09c2\u09b0\u09a3 \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
+      );
       return;
     }
 
     if (password.length < 6) {
-      _showMessage('Password must be at least 6 characters.');
+      _showMessage(
+        _text(
+          'Password must be at least 6 characters.',
+          '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u0985\u09a8\u09cd\u09a4\u09a4 \u09ec \u0985\u0995\u09cd\u09b7\u09b0\u09c7\u09b0 \u09b9\u09a4\u09c7 \u09b9\u09ac\u09c7\u0964',
+        ),
+      );
       return;
     }
 
     if (password != confirm) {
-      _showMessage('Password and confirm password do not match.');
+      _showMessage(
+        _text(
+          'Password and confirm password do not match.',
+          '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u098f\u09ac\u0982 \u0995\u09a8\u09ab\u09be\u09b0\u09cd\u09ae \u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09ae\u09bf\u09b2\u099b\u09c7 \u09a8\u09be\u0964',
+        ),
+      );
       return;
     }
 
@@ -329,7 +401,12 @@ class _SignupScreenState extends State<SignupScreen> {
     } on FirebaseAuthException catch (e) {
       _showMessage(AuthService.instance.messageForException(e));
     } catch (_) {
-      _showMessage('Sign up failed. Please try again.');
+      _showMessage(
+        _text(
+          'Sign up failed. Please try again.',
+          '\u09b8\u09be\u0987\u09a8 \u0986\u09aa \u09ac\u09cd\u09af\u09b0\u09cd\u09a5 \u09b9\u09df\u09c7\u099b\u09c7\u0964 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -352,7 +429,12 @@ class _SignupScreenState extends State<SignupScreen> {
     } on FirebaseAuthException catch (e) {
       _showMessage(AuthService.instance.messageForException(e));
     } catch (_) {
-      _showMessage('Google sign-in failed. Please try again.');
+      _showMessage(
+        _text(
+          'Google sign-in failed. Please try again.',
+          '\u0997\u09c1\u0997\u09b2 \u09b8\u09be\u0987\u09a8 \u0987\u09a8 \u09ac\u09cd\u09af\u09b0\u09cd\u09a5 \u09b9\u09df\u09c7\u099b\u09c7\u0964 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -375,7 +457,7 @@ class _SignupScreenState extends State<SignupScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Sign Up',
+                _text('Sign Up', '\u09b8\u09be\u0987\u09a8 \u0986\u09aa'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: glass.textPrimary,
@@ -400,7 +482,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 autofillHints: const [AutofillHints.email],
                 decoration: _fieldStyle(
                   glass,
-                  label: 'Email',
+                  label: _text('Email', '\u0987\u09ae\u0987\u09b2'),
                   hint: 'muslimah.gmail.com',
                   suffixIcon: Icon(
                     Icons.email_outlined,
@@ -417,7 +499,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 autofillHints: const [AutofillHints.newPassword],
                 decoration: _fieldStyle(
                   glass,
-                  label: 'Password',
+                  label: _text(
+                    'Password',
+                    '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1',
+                  ),
                   hint: '........',
                   suffixIcon: IconButton(
                     onPressed: () {
@@ -445,7 +530,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 autofillHints: const [AutofillHints.newPassword],
                 decoration: _fieldStyle(
                   glass,
-                  label: 'Confirm Password',
+                  label: _text(
+                    'Confirm Password',
+                    '\u0995\u09a8\u09ab\u09be\u09b0\u09cd\u09ae \u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1',
+                  ),
                   hint: '........',
                   suffixIcon: IconButton(
                     onPressed: () {
@@ -470,7 +558,10 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Save my info?',
+                    _text(
+                      'Save my info?',
+                      '\u0986\u09ae\u09be\u09b0 \u09a4\u09a5\u09cd\u09af \u09b8\u09c7\u09ad \u0995\u09b0\u09ac\u09c7\u09a8?',
+                    ),
                     style: TextStyle(
                       color: glass.textSecondary,
                       fontSize: 11,
@@ -504,8 +595,11 @@ class _SignupScreenState extends State<SignupScreen> {
                                 : Colors.white,
                           ),
                         )
-                      : const Text(
-                          'SIGN UP',
+                      : Text(
+                          _text(
+                            'SIGN UP',
+                            '\u09b8\u09be\u0987\u09a8 \u0986\u09aa',
+                          ),
                           style: TextStyle(
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w700,
@@ -519,10 +613,19 @@ class _SignupScreenState extends State<SignupScreen> {
               SizedBox(
                 height: 40,
                 child: FilledButton.tonalIcon(
-                  onPressed: () =>
-                      _showMessage('Phone sign-up will be added next.'),
+                  onPressed: () => _showMessage(
+                    _text(
+                      'Phone sign-up will be added next.',
+                      '\u09ab\u09cb\u09a8 \u09b8\u09be\u0987\u09a8-\u0986\u09aa \u09aa\u09b0\u09c7 \u09af\u09cb\u0997 \u0995\u09b0\u09be \u09b9\u09ac\u09c7\u0964',
+                    ),
+                  ),
                   icon: const Icon(Icons.phone_android, size: 18),
-                  label: const Text('Continue With Phone'),
+                  label: Text(
+                    _text(
+                      'Continue With Phone',
+                      '\u09ab\u09cb\u09a8 \u09a6\u09bf\u09df\u09c7 \u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8',
+                    ),
+                  ),
                   style: FilledButton.styleFrom(
                     foregroundColor: glass.textPrimary,
                     backgroundColor: glass.isDark
@@ -538,7 +641,15 @@ class _SignupScreenState extends State<SignupScreen> {
                   onPressed: _isLoading ? null : _signInWithGoogle,
                   icon: const Icon(Icons.g_mobiledata, size: 20),
                   label: Text(
-                    _isLoading ? 'Please wait...' : 'Continue With Google',
+                    _isLoading
+                        ? _text(
+                            'Please wait...',
+                            '\u0985\u09aa\u09c7\u0995\u09cd\u09b7\u09be \u0995\u09b0\u09c1\u09a8...',
+                          )
+                        : _text(
+                            'Continue With Google',
+                            '\u0997\u09c1\u0997\u09b2 \u09a6\u09bf\u09df\u09c7 \u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8',
+                          ),
                   ),
                   style: FilledButton.styleFrom(
                     foregroundColor: glass.textPrimary,
@@ -553,14 +664,17 @@ class _SignupScreenState extends State<SignupScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Already have an account? ',
+                    _text(
+                      'Already have an account? ',
+                      '\u0986\u0997\u09c7 \u09a5\u09c7\u0995\u09c7 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f \u0986\u099b\u09c7? ',
+                    ),
                     style: TextStyle(color: glass.textSecondary, fontSize: 12),
                   ),
                   GestureDetector(
                     onTap: () =>
                         Navigator.of(context).pushNamed(RouteNames.signIn),
                     child: Text(
-                      'Sign In',
+                      _text('Sign In', '\u09b8\u09be\u0987\u09a8 \u0987\u09a8'),
                       style: TextStyle(
                         color: glass.accent,
                         fontSize: 12,
@@ -573,8 +687,11 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _isLoading ? null : _continueWithoutSignIn,
-                child: const Text(
-                  'Skip for now',
+                child: Text(
+                  _text(
+                    'Skip for now',
+                    '\u098f\u0996\u09a8 \u09b8\u09cd\u0995\u09bf\u09aa \u0995\u09b0\u09c1\u09a8',
+                  ),
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),

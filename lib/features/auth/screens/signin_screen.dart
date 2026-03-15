@@ -26,8 +26,23 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+  String _text(String en, String bn) => _isBangla ? bn : en;
+
+  @override
+  void initState() {
+    super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
+  }
+
+  void _onLanguageChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -116,7 +131,7 @@ class _SignInScreenState extends State<SignInScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text(
-            'OR',
+            _text('OR', '\u0985\u09a5\u09ac\u09be'),
             style: TextStyle(
               color: glass.textMuted,
               fontSize: 11,
@@ -140,7 +155,10 @@ class _SignInScreenState extends State<SignInScreen> {
     final online = await NetworkUtils.hasInternet();
     if (!online) {
       _showMessage(
-        'No internet connection. Please check network and try again.',
+        _text(
+          'No internet connection. Please check network and try again.',
+          '\u0987\u09a8\u09cd\u099f\u09be\u09b0\u09a8\u09c7\u099f \u09b8\u0982\u09af\u09cb\u0997 \u09a8\u09c7\u0987\u0964 \u09a8\u09c7\u099f\u0993\u09df\u09be\u09b0\u09cd\u0995 \u099a\u09c7\u0995 \u0995\u09b0\u09c7 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
       );
       return false;
     }
@@ -153,12 +171,7 @@ class _SignInScreenState extends State<SignInScreen> {
   }
 
   Future<
-    ({
-      String name,
-      AppLanguage language,
-      bool prayerAlerts,
-      bool mealAlerts,
-    })?
+    ({String name, AppLanguage language, bool prayerAlerts, bool mealAlerts})?
   >
   _promptGuestQuickSetup() async {
     final controller = TextEditingController();
@@ -167,38 +180,55 @@ class _SignInScreenState extends State<SignInScreen> {
     var mealAlerts =
         sehriAlertEnabledNotifier.value || iftarAlertEnabledNotifier.value;
 
-    final result = await showDialog<
-      ({String name, AppLanguage language, bool prayerAlerts, bool mealAlerts})?
-    >(
+    final result = await showDialog<({String name, AppLanguage language, bool prayerAlerts, bool mealAlerts})?>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
-              title: const Text('Guest Quick Setup'),
+              title: Text(
+                _text(
+                  'Guest Quick Setup',
+                  '\u0997\u09c7\u09b8\u09cd\u099f \u0995\u09cd\u09ac\u09bf\u0995 \u09b8\u09c7\u099f\u0986\u09aa',
+                ),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'You can set these now and change later from Profile.',
-                      style: TextStyle(fontSize: 13),
+                    Text(
+                      _text(
+                        'You can set these now and change later from Profile.',
+                        '\u098f\u0997\u09c1\u09b2\u09cb \u098f\u0996\u09a8 \u09b8\u09c7\u099f \u0995\u09b0\u09c1\u09a8, \u09aa\u09b0\u09c7 \u09aa\u09cd\u09b0\u09cb\u09ab\u09be\u0987\u09b2 \u09a5\u09c7\u0995\u09c7 \u09ac\u09a6\u09b2\u09be\u09a4\u09c7 \u09aa\u09be\u09b0\u09ac\u09c7\u09a8\u0964',
+                      ),
+                      style: const TextStyle(fontSize: 13),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: controller,
                       textInputAction: TextInputAction.next,
                       autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Your name (optional)',
-                        hintText: 'e.g. Siam',
+                      decoration: InputDecoration(
+                        labelText: _text(
+                          'Your name (optional)',
+                          '\u0986\u09aa\u09a8\u09be\u09b0 \u09a8\u09be\u09ae (\u0985\u099a\u09cd\u099b\u09bf\u0995)',
+                        ),
+                        hintText: _text(
+                          'e.g. Siam',
+                          '\u09af\u09c7\u09ae\u09a8: \u09b8\u09bf\u09df\u09be\u09ae',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     DropdownButtonFormField<AppLanguage>(
                       initialValue: language,
-                      decoration: const InputDecoration(labelText: 'Language'),
+                      decoration: InputDecoration(
+                        labelText: _text(
+                          'Language',
+                          '\u09ad\u09be\u09b7\u09be',
+                        ),
+                      ),
                       items: const [
                         DropdownMenuItem(
                           value: AppLanguage.bangla,
@@ -218,16 +248,36 @@ class _SignInScreenState extends State<SignInScreen> {
                     SwitchListTile(
                       value: prayerAlerts,
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Adhan / Prayer alert'),
-                      subtitle: const Text('Play prayer notifications'),
+                      title: Text(
+                        _text(
+                          'Adhan / Prayer alert',
+                          '\u0986\u09af\u09be\u09a8 / \u09a8\u09be\u09ae\u09be\u099c \u098f\u09b2\u09be\u09b0\u09cd\u099f',
+                        ),
+                      ),
+                      subtitle: Text(
+                        _text(
+                          'Play prayer notifications',
+                          '\u09a8\u09be\u09ae\u09be\u099c\u09c7\u09b0 \u09a8\u09cb\u099f\u09bf\u09ab\u09bf\u0995\u09c7\u09b6\u09a8 \u099a\u09be\u09b2\u09c1 \u09b0\u09be\u0996\u09c1\u09a8',
+                        ),
+                      ),
                       onChanged: (value) =>
                           setDialogState(() => prayerAlerts = value),
                     ),
                     SwitchListTile(
                       value: mealAlerts,
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Sehri / Iftar alert'),
-                      subtitle: const Text('Meal time reminder notifications'),
+                      title: Text(
+                        _text(
+                          'Sehri / Iftar alert',
+                          '\u09b8\u09c7\u09b9\u09b0\u09bf / \u0987\u09ab\u09a4\u09be\u09b0 \u098f\u09b2\u09be\u09b0\u09cd\u099f',
+                        ),
+                      ),
+                      subtitle: Text(
+                        _text(
+                          'Meal time reminder notifications',
+                          '\u0996\u09be\u09ac\u09be\u09b0\u09c7\u09b0 \u09b8\u09ae\u09df\u09c7\u09b0 \u09b0\u09bf\u09ae\u09be\u0987\u09a8\u09cd\u09a1\u09be\u09b0 \u09a8\u09cb\u099f\u09bf\u09ab\u09bf\u0995\u09c7\u09b6\u09a8',
+                        ),
+                      ),
                       onChanged: (value) =>
                           setDialogState(() => mealAlerts = value),
                     ),
@@ -237,7 +287,9 @@ class _SignInScreenState extends State<SignInScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(null),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    _text('Cancel', '\u09ac\u09be\u09a4\u09bf\u09b2'),
+                  ),
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop((
@@ -248,7 +300,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         sehriAlertEnabledNotifier.value ||
                         iftarAlertEnabledNotifier.value,
                   )),
-                  child: const Text('Skip'),
+                  child: Text(_text('Skip', '\u09b8\u09cd\u0995\u09bf\u09aa')),
                 ),
                 FilledButton(
                   onPressed: () => Navigator.of(dialogContext).pop((
@@ -257,7 +309,12 @@ class _SignInScreenState extends State<SignInScreen> {
                     prayerAlerts: prayerAlerts,
                     mealAlerts: mealAlerts,
                   )),
-                  child: const Text('Continue'),
+                  child: Text(
+                    _text(
+                      'Continue',
+                      '\u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8',
+                    ),
+                  ),
                 ),
               ],
             );
@@ -295,7 +352,12 @@ class _SignInScreenState extends State<SignInScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      _showMessage('Please enter email and password.');
+      _showMessage(
+        _text(
+          'Please enter email and password.',
+          '\u0987\u09ae\u0987\u09b2 \u098f\u09ac\u0982 \u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09a6\u09bf\u09a8\u0964',
+        ),
+      );
       return;
     }
 
@@ -313,7 +375,12 @@ class _SignInScreenState extends State<SignInScreen> {
     } on FirebaseAuthException catch (e) {
       _showMessage(AuthService.instance.messageForException(e));
     } catch (_) {
-      _showMessage('Sign in failed. Please try again.');
+      _showMessage(
+        _text(
+          'Sign in failed. Please try again.',
+          '\u09b8\u09be\u0987\u09a8 \u0987\u09a8 \u09ac\u09cd\u09af\u09b0\u09cd\u09a5 \u09b9\u09df\u09c7\u099b\u09c7\u0964 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -325,17 +392,32 @@ class _SignInScreenState extends State<SignInScreen> {
     if (!await _ensureInternetOrShowMessage()) return;
     final email = _emailController.text.trim();
     if (email.isEmpty) {
-      _showMessage('Enter your email first to reset password.');
+      _showMessage(
+        _text(
+          'Enter your email first to reset password.',
+          '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09b0\u09bf\u09b8\u09c7\u099f \u0995\u09b0\u09a4\u09c7 \u0986\u0997\u09c7 \u0987\u09ae\u0987\u09b2 \u09a6\u09bf\u09a8\u0964',
+        ),
+      );
       return;
     }
 
     try {
       await AuthService.instance.sendPasswordReset(email);
-      _showMessage('Password reset email sent. Check your inbox.');
+      _showMessage(
+        _text(
+          'Password reset email sent. Check your inbox.',
+          '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09b0\u09bf\u09b8\u09c7\u099f \u0987\u09ae\u0987\u09b2 \u09aa\u09be\u09a0\u09be\u09a8\u09cb \u09b9\u09df\u09c7\u099b\u09c7\u0964 \u0987\u09a8\u09ac\u0995\u09cd\u09b8 \u099a\u09c7\u0995 \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
+      );
     } on FirebaseAuthException catch (e) {
       _showMessage(AuthService.instance.messageForException(e));
     } catch (_) {
-      _showMessage('Failed to send reset email. Please try again.');
+      _showMessage(
+        _text(
+          'Failed to send reset email. Please try again.',
+          '\u09b0\u09bf\u09b8\u09c7\u099f \u0987\u09ae\u0987\u09b2 \u09aa\u09be\u09a0\u09be\u09a8\u09cb \u09af\u09be\u09df\u09a8\u09bf\u0964 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
+      );
     }
   }
 
@@ -354,7 +436,12 @@ class _SignInScreenState extends State<SignInScreen> {
     } on FirebaseAuthException catch (e) {
       _showMessage(AuthService.instance.messageForException(e));
     } catch (_) {
-      _showMessage('Google sign-in failed. Please try again.');
+      _showMessage(
+        _text(
+          'Google sign-in failed. Please try again.',
+          '\u0997\u09c1\u0997\u09b2 \u09b8\u09be\u0987\u09a8 \u0987\u09a8 \u09ac\u09cd\u09af\u09b0\u09cd\u09a5 \u09b9\u09df\u09c7\u099b\u09c7\u0964 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964',
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -377,7 +464,7 @@ class _SignInScreenState extends State<SignInScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Sign In',
+                _text('Sign In', '\u09b8\u09be\u0987\u09a8 \u0987\u09a8'),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: glass.textPrimary,
@@ -402,7 +489,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 autofillHints: const [AutofillHints.email],
                 decoration: _fieldStyle(
                   glass,
-                  label: 'Email',
+                  label: _text('Email', '\u0987\u09ae\u0987\u09b2'),
                   hint: 'muslimah.gmail.com',
                   suffixIcon: Icon(
                     Icons.email_outlined,
@@ -423,7 +510,10 @@ class _SignInScreenState extends State<SignInScreen> {
                 },
                 decoration: _fieldStyle(
                   glass,
-                  label: 'Password',
+                  label: _text(
+                    'Password',
+                    '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1',
+                  ),
                   hint: '........',
                   suffixIcon: IconButton(
                     onPressed: () {
@@ -447,8 +537,11 @@ class _SignInScreenState extends State<SignInScreen> {
                   style: TextButton.styleFrom(
                     foregroundColor: glass.accentSoft,
                   ),
-                  child: const Text(
-                    'Forgot Password?',
+                  child: Text(
+                    _text(
+                      'Forgot Password?',
+                      '\u09aa\u09be\u09b8\u0993\u09df\u09be\u09b0\u09cd\u09a1 \u09ad\u09c1\u09b2\u09c7 \u0997\u09c7\u099b\u09c7\u09a8?',
+                    ),
                     style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -478,8 +571,11 @@ class _SignInScreenState extends State<SignInScreen> {
                                 : Colors.white,
                           ),
                         )
-                      : const Text(
-                          'SIGN IN',
+                      : Text(
+                          _text(
+                            'SIGN IN',
+                            '\u09b8\u09be\u0987\u09a8 \u0987\u09a8',
+                          ),
                           style: TextStyle(
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w700,
@@ -496,7 +592,15 @@ class _SignInScreenState extends State<SignInScreen> {
                   onPressed: _isLoading ? null : _signInWithGoogle,
                   icon: const Icon(Icons.g_mobiledata, size: 20),
                   label: Text(
-                    _isLoading ? 'Please wait...' : 'Continue With Google',
+                    _isLoading
+                        ? _text(
+                            'Please wait...',
+                            '\u0985\u09aa\u09c7\u0995\u09cd\u09b7\u09be \u0995\u09b0\u09c1\u09a8...',
+                          )
+                        : _text(
+                            'Continue With Google',
+                            '\u0997\u09c1\u0997\u09b2 \u09a6\u09bf\u09df\u09c7 \u099a\u09be\u09b2\u09bf\u09df\u09c7 \u09af\u09be\u09a8',
+                          ),
                   ),
                   style: FilledButton.styleFrom(
                     foregroundColor: glass.textPrimary,
@@ -511,14 +615,20 @@ class _SignInScreenState extends State<SignInScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Don't have any account? ",
+                    _text(
+                      "Don't have any account? ",
+                      '\u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f \u09a8\u09c7\u0987? ',
+                    ),
                     style: TextStyle(color: glass.textSecondary, fontSize: 12),
                   ),
                   GestureDetector(
                     onTap: () =>
                         Navigator.of(context).pushNamed(RouteNames.signUp),
                     child: Text(
-                      'Register',
+                      _text(
+                        'Register',
+                        '\u09b0\u09c7\u099c\u09bf\u09b8\u09cd\u099f\u09be\u09b0',
+                      ),
                       style: TextStyle(
                         color: glass.accent,
                         fontSize: 12,
@@ -531,8 +641,11 @@ class _SignInScreenState extends State<SignInScreen> {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: _isLoading ? null : _continueWithoutSignIn,
-                child: const Text(
-                  'Skip for now',
+                child: Text(
+                  _text(
+                    'Skip for now',
+                    '\u098f\u0996\u09a8 \u09b8\u09cd\u0995\u09bf\u09aa \u0995\u09b0\u09c1\u09a8',
+                  ),
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),

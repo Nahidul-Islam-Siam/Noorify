@@ -96,7 +96,9 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
     alertToneNotifier.addListener(_onAlertToneChanged);
     _initializeMiniCompass();
     _loadPrayerData();
-    _loadLastReadCard();
+    if (kQuranFeatureEnabled) {
+      _loadLastReadCard();
+    }
     unawaited(_loadNearbyMosquePreview());
     unawaited(_showAnnouncementModalIfNeeded());
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -619,6 +621,15 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   }
 
   Future<void> _loadLastReadCard() async {
+    if (!kQuranFeatureEnabled) {
+      if (!mounted) return;
+      _safeSetState(() {
+        _lastReadSurahNo = null;
+        _lastReadChapter = null;
+      });
+      return;
+    }
+
     final savedSurahNo = await _lastReadService.readLastReadSurahNo();
     if (!mounted) return;
 
@@ -651,6 +662,11 @@ mixin DailyActivityControllerMixin on State<DailyActivityScreen> {
   }
 
   Future<void> _openLastRead() async {
+    if (!kQuranFeatureEnabled) {
+      await Navigator.of(context).pushNamed(RouteNames.discover);
+      return;
+    }
+
     final chapter = _lastReadChapter;
     if (chapter != null) {
       await Navigator.of(context).push<void>(

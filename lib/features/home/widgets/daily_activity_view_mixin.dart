@@ -1293,12 +1293,13 @@ mixin DailyActivityViewMixin
   Widget _buildQuickActions() {
     final actions =
         <({String titleEn, String titleBn, IconData icon, String route})>[
-          (
-            titleEn: 'Quran',
-            titleBn: '\u0995\u09c1\u09b0\u0986\u09a8',
-            icon: Icons.auto_stories_rounded,
-            route: RouteNames.quran,
-          ),
+          if (kQuranFeatureEnabled)
+            (
+              titleEn: 'Quran',
+              titleBn: '\u0995\u09c1\u09b0\u0986\u09a8',
+              icon: Icons.auto_stories_rounded,
+              route: RouteNames.quran,
+            ),
           (
             titleEn: 'Hadith',
             titleBn: '\u09b9\u09be\u09a6\u09bf\u09b8',
@@ -1693,31 +1694,32 @@ mixin DailyActivityViewMixin
     final items = <({String en, String bn, IconData icon, String route})>[
       (
         en: 'Home',
-        bn: 'Home',
+        bn: 'হোম',
         icon: Icons.home_filled,
         route: RouteNames.activity,
       ),
       (
         en: 'Discover',
-        bn: 'Discover',
+        bn: 'আবিষ্কার',
         icon: Icons.explore_outlined,
         route: RouteNames.discover,
       ),
-      (
-        en: 'Quran',
-        bn: 'Quran',
-        icon: Icons.menu_book_outlined,
-        route: RouteNames.quran,
-      ),
+      if (kQuranFeatureEnabled)
+        (
+          en: 'Quran',
+          bn: 'কুরআন',
+          icon: Icons.menu_book_outlined,
+          route: RouteNames.quran,
+        ),
       (
         en: 'Prayer',
-        bn: 'Prayer',
+        bn: 'নামাজ',
         icon: Icons.calendar_month_outlined,
         route: RouteNames.prayerTimes,
       ),
       (
         en: 'Profile',
-        bn: 'Profile',
+        bn: 'প্রোফাইল',
         icon: Icons.person_outline,
         route: RouteNames.preferences,
       ),
@@ -1871,8 +1873,10 @@ mixin DailyActivityViewMixin
                           _buildMosquePreviewCard(),
                           const SizedBox(height: 12),
                           _buildQuickActions(),
-                          const SizedBox(height: 12),
-                          _buildLastReadCard(),
+                          if (kQuranFeatureEnabled) ...[
+                            const SizedBox(height: 12),
+                            _buildLastReadCard(),
+                          ],
                           const SizedBox(height: 12),
                           _buildDailyActivityCard(),
                         ],

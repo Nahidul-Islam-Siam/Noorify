@@ -163,19 +163,20 @@ class DiscoverScreen extends StatelessWidget {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           children: [
-                            _ActionCard(
-                              title: t(
-                                'Quran',
-                                '\u0995\u09c1\u09b0\u0986\u09a8',
+                            if (kQuranFeatureEnabled)
+                              _ActionCard(
+                                title: t(
+                                  'Quran',
+                                  '\u0995\u09c1\u09b0\u0986\u09a8',
+                                ),
+                                subtitle: t(
+                                  'Read and listen',
+                                  '\u09aa\u09be\u09a0 \u0993 \u09b6\u09c1\u09a8\u09c1\u09a8',
+                                ),
+                                icon: Icons.auto_stories_rounded,
+                                accentColor: const Color(0xFF16A6C7),
+                                onTap: () => openRoute(RouteNames.quran),
                               ),
-                              subtitle: t(
-                                'Read and listen',
-                                '\u09aa\u09be\u09a0 \u0993 \u09b6\u09c1\u09a8\u09c1\u09a8',
-                              ),
-                              icon: Icons.auto_stories_rounded,
-                              accentColor: const Color(0xFF16A6C7),
-                              onTap: () => openRoute(RouteNames.quran),
-                            ),
                             _ActionCard(
                               title: t(
                                 'Prayer Times',

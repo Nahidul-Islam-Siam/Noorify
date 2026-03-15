@@ -18,6 +18,8 @@ const int dzuhrNotificationId = 2002;
 const int ashrNotificationId = 2003;
 const int maghribNotificationId = 2004;
 const int ishaNotificationId = 2005;
+// Toggle to hide/show Quran module from app navigation without deleting code.
+const bool kQuranFeatureEnabled = false;
 
 enum AppLanguage { english, bangla }
 
@@ -111,15 +113,13 @@ bool _applyLegacyBanglaMigration(Map<dynamic, dynamic> json) {
 
   var changed = false;
 
-  final looksLegacyLanguage =
-      storedLanguage.isEmpty || storedLanguage.toLowerCase() == 'english';
+  final looksLegacyLanguage = storedLanguage.isEmpty;
   if (looksLegacyLanguage && appLanguageNotifier.value != AppLanguage.bangla) {
     appLanguageNotifier.value = AppLanguage.bangla;
     changed = true;
   }
 
-  final looksLegacyTranslation =
-      storedTranslation.isEmpty || storedTranslation.toLowerCase() == 'english';
+  final looksLegacyTranslation = storedTranslation.isEmpty;
   if (looksLegacyTranslation && translationLanguageNotifier.value != 'Bangla') {
     translationLanguageNotifier.value = 'Bangla';
     changed = true;

@@ -20,6 +20,7 @@ import 'package:first_project/features/islamic_calendar/screens/islamic_calendar
 import 'package:first_project/features/splash/screens/ramadan_splash_screen.dart';
 import 'package:first_project/features/auth/screens/signin_screen.dart';
 import 'package:first_project/features/auth/screens/signup_screen.dart';
+import 'package:first_project/shared/services/app_globals.dart';
 
 class AppRoutes {
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
@@ -49,6 +50,9 @@ class AppRoutes {
       case RouteNames.tasbih:
         return _page(const TasbihScreen(), settings);
       case RouteNames.quran:
+        if (!kQuranFeatureEnabled) {
+          return _page(const DailyActivityScreen(), settings);
+        }
         return _page(const QuranScreen(), settings);
       case RouteNames.prayerTimes:
         return _page(const PrayerTimesScreen(), settings);

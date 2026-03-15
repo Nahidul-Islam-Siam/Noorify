@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -52,6 +54,47 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
   bool _usingFallbackLocation = false;
   String _locationLabel = 'Detecting location...';
   List<MosqueItem> _mosques = const [];
+
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+
+  bool _looksMojibake(String value) {
+    for (final unit in value.codeUnits) {
+      if (unit == 0x00C3 ||
+          unit == 0x00C2 ||
+          unit == 0x00E0 ||
+          unit == 0x00D8 ||
+          unit == 0x00D9 ||
+          unit == 0x00D0 ||
+          unit == 0x00E2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _repairMojibake(String value) {
+    var output = value;
+    for (var i = 0; i < 2; i++) {
+      if (!_looksMojibake(output)) break;
+      try {
+        output = utf8.decode(latin1.encode(output));
+      } catch (_) {
+        break;
+      }
+    }
+    return output;
+  }
+
+  bool _containsBangla(String value) {
+    return RegExp(r'[\u0980-\u09FF]').hasMatch(value);
+  }
+
+  String _text(String en, String bn) {
+    if (!_isBangla) return en;
+    final repaired = _repairMojibake(bn);
+    if (_looksMojibake(repaired)) return en;
+    return _containsBangla(repaired) ? repaired : en;
+  }
 
   @override
   void initState() {
@@ -117,32 +160,42 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
         return (message: null, showRetry: false);
       case _LocationFallbackReason.appSettingOff:
         return (
-          message:
-              'Use device location is off. Showing fallback location (Dhaka).',
+          message: _text(
+            'Use device location is off. Showing fallback location (Dhaka).',
+            'ডিভাইস লোকেশন বন্ধ আছে। বিকল্প লোকেশন (ঢাকা) দেখানো হচ্ছে।',
+          ),
           showRetry: true,
         );
       case _LocationFallbackReason.serviceDisabled:
         return (
-          message:
-              'Phone location service is off. Showing fallback location (Dhaka).',
+          message: _text(
+            'Phone location service is off. Showing fallback location (Dhaka).',
+            'ফোনের লোকেশন সার্ভিস বন্ধ। বিকল্প লোকেশন (ঢাকা) দেখানো হচ্ছে।',
+          ),
           showRetry: true,
         );
       case _LocationFallbackReason.permissionDenied:
         return (
-          message:
-              'Location permission denied. Showing fallback location (Dhaka).',
+          message: _text(
+            'Location permission denied. Showing fallback location (Dhaka).',
+            'লোকেশন পারমিশন পাওয়া যায়নি। বিকল্প লোকেশন (ঢাকা) দেখানো হচ্ছে।',
+          ),
           showRetry: true,
         );
       case _LocationFallbackReason.permissionDeniedForever:
         return (
-          message:
-              'Location permission is permanently denied. Showing fallback location (Dhaka).',
+          message: _text(
+            'Location permission is permanently denied. Showing fallback location (Dhaka).',
+            'লোকেশন পারমিশন স্থায়ীভাবে বন্ধ। বিকল্প লোকেশন (ঢাকা) দেখানো হচ্ছে।',
+          ),
           showRetry: true,
         );
       case _LocationFallbackReason.error:
         return (
-          message:
-              'Could not detect location. Showing fallback location (Dhaka).',
+          message: _text(
+            'Could not detect location. Showing fallback location (Dhaka).',
+            'লোকেশন শনাক্ত করা যায়নি। বিকল্প লোকেশন (ঢাকা) দেখানো হচ্ছে।',
+          ),
           showRetry: true,
         );
     }
@@ -207,7 +260,10 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      var message = 'Could not load nearby mosques. Please try again.';
+      var message = _text(
+        'Could not load nearby mosques. Please try again.',
+        'নিকটবর্তী মসজিদ লোড করা যায়নি। আবার চেষ্টা করুন।',
+      );
       var loadedFromCache = false;
       MosqueCachedResults? cached;
       if (e is MosqueLookupException) {
@@ -237,8 +293,10 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
           _lastUpdatedAt = cachedResults.updatedAt;
           _showingCachedData = true;
           _error = null;
-          _noticeMessage =
-              'Offline mode: showing last saved mosque list ($dateLabel $hour:$minute $suffix).';
+          _noticeMessage = _text(
+            'Offline mode: showing last saved mosque list ($dateLabel $hour:$minute $suffix).',
+            'অফলাইন মোড: সর্বশেষ সেভ করা মসজিদ তালিকা দেখানো হচ্ছে ($dateLabel $hour:$minute $suffix)।',
+          );
           _showNoticeRetry = true;
           _isLoading = false;
         });
@@ -370,18 +428,20 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
   Future<String> _resolveLocationLabel(double lat, double lng) async {
     try {
       final placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isEmpty) return 'Current location';
+      if (placemarks.isEmpty) {
+        return _text('Current location', 'বর্তমান লোকেশন');
+      }
       final place = placemarks.first;
       final city =
           place.locality ??
           place.subAdministrativeArea ??
           place.administrativeArea ??
-          'Current location';
+          _text('Current location', 'বর্তমান লোকেশন');
       final country = place.country;
       if (country == null || country.isEmpty) return city;
       return '$city, $country';
     } catch (_) {
-      return 'Current location';
+      return _text('Current location', 'বর্তমান লোকেশন');
     }
   }
 
@@ -417,7 +477,14 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Could not open map app on this device.')),
+      SnackBar(
+        content: Text(
+          _text(
+            'Could not open map app on this device.',
+            'এই ডিভাইসে ম্যাপ অ্যাপ খোলা যায়নি।',
+          ),
+        ),
+      ),
     );
   }
 
@@ -476,7 +543,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                           ),
                           shape: const StadiumBorder(),
                         ),
-                        child: const Text('Retry'),
+                        child: Text(_text('Retry', 'আবার চেষ্টা করুন')),
                       ),
                     ),
                   ],
@@ -590,8 +657,8 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               icon: const Icon(Icons.near_me_rounded, size: 14),
-              label: const Text(
-                'Direction',
+              label: Text(
+                _text('Direction', 'দিকনির্দেশ'),
                 style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
               ),
             ),
@@ -623,7 +690,10 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
     if (_error != null) {
       return _buildEmptyState(
         icon: Icons.wifi_off_rounded,
-        title: 'Could not load nearest mosques.',
+        title: _text(
+          'Could not load nearest mosques.',
+          'নিকটবর্তী মসজিদ লোড করা যায়নি।',
+        ),
         subtitle: _error!,
         onRetry: () => _refreshMosques(forceResolveLocation: true),
       );
@@ -631,11 +701,17 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
 
     if (items.isEmpty) {
       final subtitle = _query.isEmpty
-          ? 'Try changing radius or refreshing location.'
-          : 'No mosque matches your search.';
+          ? _text(
+              'Try changing radius or refreshing location.',
+              'রেডিয়াস বদলে দেখুন বা লোকেশন রিফ্রেশ করুন।',
+            )
+          : _text(
+              'No mosque matches your search.',
+              'আপনার খোঁজার সাথে মিলে এমন মসজিদ পাওয়া যায়নি।',
+            );
       return _buildEmptyState(
         icon: Icons.search_off_rounded,
-        title: 'No result found',
+        title: _text('No result found', 'কোনো ফলাফল পাওয়া যায়নি'),
         subtitle: subtitle,
         onRetry: _showNoticeRetry
             ? () => _refreshMosques(forceResolveLocation: true)
@@ -710,7 +786,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 0),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('Retry'),
+              child: Text(_text('Retry', 'আবার চেষ্টা করুন')),
             ),
         ],
       ),
@@ -733,8 +809,8 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
     if (updatedAt == null) return const SizedBox.shrink();
 
     final prefix = _showingCachedData
-        ? 'Last updated (cached)'
-        : 'Last updated';
+        ? _text('Last updated (cached)', 'সর্বশেষ আপডেট (ক্যাশড)')
+        : _text('Last updated', 'সর্বশেষ আপডেট');
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -798,7 +874,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Nearest Mosque',
+                                _text('Nearest Mosque', 'নিকটবর্তী মসজিদ'),
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
@@ -821,7 +897,7 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                                     controller: _searchController,
                                     style: TextStyle(color: glass.textPrimary),
                                     decoration: InputDecoration(
-                                      hintText: 'Search',
+                                      hintText: _text('Search', 'খুঁজুন'),
                                       hintStyle: TextStyle(
                                         color: glass.textMuted,
                                       ),
@@ -842,7 +918,10 @@ class _FindMosqueScreenState extends State<FindMosqueScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 IconButton.filledTonal(
-                                  tooltip: 'Set location',
+                                  tooltip: _text(
+                                    'Set location',
+                                    'লোকেশন সেট করুন',
+                                  ),
                                   onPressed: _openSetLocation,
                                   style: IconButton.styleFrom(
                                     backgroundColor: glass.isDark

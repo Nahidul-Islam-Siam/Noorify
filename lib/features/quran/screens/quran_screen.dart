@@ -10,6 +10,7 @@ import 'package:first_project/features/quran/services/quran_api_service.dart';
 import 'package:first_project/features/quran/services/quran_bookmarks_service.dart';
 import 'package:first_project/features/quran/services/quran_content_cache_service.dart';
 import 'package:first_project/features/quran/services/quran_last_read_service.dart';
+import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
 import 'package:first_project/shared/widgets/noorify_glass.dart';
 
@@ -46,9 +47,25 @@ class _QuranScreenState extends State<QuranScreen> {
 
   List<QuranChapter> _chapters = [];
 
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+  String _t(String en, String bn) => _isBangla ? bn : en;
+
+  String _toBanglaDigits(String input) {
+    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    const bangla = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+    var output = input;
+    for (var i = 0; i < english.length; i++) {
+      output = output.replaceAll(english[i], bangla[i]);
+    }
+    return output;
+  }
+
+  String _digits(String input) => _isBangla ? _toBanglaDigits(input) : input;
+
   @override
   void initState() {
     super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
     _searchController.addListener(_onSearchChanged);
     _surahListController.addListener(_onSurahListScroll);
     _loadBookmarks();
@@ -56,8 +73,14 @@ class _QuranScreenState extends State<QuranScreen> {
     _loadChapters();
   }
 
+  void _onLanguageChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
   @override
   void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
     _searchController
       ..removeListener(_onSearchChanged)
       ..dispose();
@@ -104,7 +127,7 @@ class _QuranScreenState extends State<QuranScreen> {
     }
     final fallbackName = bookmark.surahName.trim();
     final surahName = fallbackName.isEmpty
-        ? 'Surah ${bookmark.surahNo}'
+        ? '${_t('Surah', 'সূরা')} ${_digits(bookmark.surahNo.toString())}'
         : fallbackName;
     return QuranChapter(
       surahNo: bookmark.surahNo,
@@ -168,13 +191,23 @@ class _QuranScreenState extends State<QuranScreen> {
       }
       if (fromCache) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No internet. Showing saved content.')),
+          SnackBar(
+            content: Text(
+              _t(
+                'No internet. Showing saved content.',
+                'ইন্টারনেট নেই। সেভ করা কনটেন্ট দেখানো হচ্ছে।',
+              ),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Could not load Quran list.';
+        _error = _t(
+          'Could not load Quran list.',
+          'কুরআনের তালিকা লোড করা যায়নি।',
+        );
         _isLoading = false;
       });
     }
@@ -247,7 +280,10 @@ class _QuranScreenState extends State<QuranScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Quran text cached for offline reading ($successCount/${chapters.length}).',
+            _t(
+              'Quran text cached for offline reading ($successCount/${chapters.length}).',
+              'অফলাইনে পড়ার জন্য কুরআনের টেক্সট সেভ হয়েছে ($successCount/${chapters.length})।',
+            ),
           ),
         ),
       );
@@ -257,7 +293,10 @@ class _QuranScreenState extends State<QuranScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Offline text cached $successCount/${chapters.length}. Retry later for remaining $failed.',
+          _t(
+            'Offline text cached $successCount/${chapters.length}. Retry later for remaining $failed.',
+            'অফলাইন টেক্সট সেভ হয়েছে $successCount/${chapters.length}। বাকি $failed পরে আবার চেষ্টা করুন।',
+          ),
         ),
       ),
     );
@@ -295,8 +334,8 @@ class _QuranScreenState extends State<QuranScreen> {
 
   String _revelationLabel(String place) {
     final lower = place.toLowerCase();
-    if (lower.contains('mecca')) return 'Makkah';
-    if (lower.contains('medina')) return 'Madinah';
+    if (lower.contains('mecca')) return _t('Makkah', 'মক্কা');
+    if (lower.contains('medina')) return _t('Madinah', 'মদিনা');
     return place;
   }
 
@@ -337,7 +376,14 @@ class _QuranScreenState extends State<QuranScreen> {
     if (!mounted) return;
     if (_bookmarks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No saved ayah bookmarks yet')),
+        SnackBar(
+          content: Text(
+            _t(
+              'No saved ayah bookmarks yet',
+              'এখনও কোনো আয়াত বুকমার্ক সেভ করা হয়নি',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -374,8 +420,11 @@ class _QuranScreenState extends State<QuranScreen> {
     final lastReadProgress = _lastReadProgressForSurah(lastReadChapter);
     final completionPercent = (lastReadProgress.progress * 100).round();
     final progressLabel = lastReadProgress.ayahNo <= 0
-        ? 'Start reading to track progress'
-        : '$completionPercent% Complete \u2022 Ayat ${lastReadProgress.ayahNo}/${lastReadChapter.totalAyah}';
+        ? _t('Start reading to track progress', 'প্রগ্রেস দেখতে পড়া শুরু করুন')
+        : _t(
+            '${_digits(completionPercent.toString())}% Complete \u2022 Ayat ${_digits(lastReadProgress.ayahNo.toString())}/${_digits(lastReadChapter.totalAyah.toString())}',
+            '${_digits(completionPercent.toString())}% সম্পন্ন \u2022 আয়াত ${_digits(lastReadProgress.ayahNo.toString())}/${_digits(lastReadChapter.totalAyah.toString())}',
+          );
 
     return Container(
       decoration: const BoxDecoration(
@@ -435,10 +484,10 @@ class _QuranScreenState extends State<QuranScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Quran',
+                  Text(
+                    _t('Quran', 'কুরআন'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 44,
                       fontWeight: FontWeight.w300,
@@ -446,10 +495,10 @@ class _QuranScreenState extends State<QuranScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const Text(
-                    'Read | Listen | Offline',
+                  Text(
+                    _t('Read | Listen | Offline', 'পড়ুন | শুনুন | অফলাইন'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Color(0xD7FFFFFF),
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -495,7 +544,7 @@ class _QuranScreenState extends State<QuranScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Last Read:',
+                                    _t('Last Read:', 'সর্বশেষ তিলাওয়াত:'),
                                     style: TextStyle(
                                       color: Colors.white.withValues(
                                         alpha: 0.86,
@@ -517,7 +566,7 @@ class _QuranScreenState extends State<QuranScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '(Surah ${lastReadChapter.surahNo})',
+                                    '(${_t('Surah', 'সূরা')} ${_digits(lastReadChapter.surahNo.toString())})',
                                     style: TextStyle(
                                       color: Colors.white.withValues(
                                         alpha: 0.84,
@@ -542,8 +591,8 @@ class _QuranScreenState extends State<QuranScreen> {
                                 minimumSize: const Size(0, 40),
                                 shape: const StadiumBorder(),
                               ),
-                              child: const Text(
-                                'Continue',
+                              child: Text(
+                                _t('Continue', 'চালিয়ে যান'),
                                 style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ),
@@ -632,7 +681,7 @@ class _QuranScreenState extends State<QuranScreen> {
               children: [
                 Expanded(
                   child: _FilterChipButton(
-                    label: '\u09b8\u09ac',
+                    label: _t('All', 'সব'),
                     selected: _filter == 'all',
                     isSegment: true,
                     onTap: () => setState(() => _filter = 'all'),
@@ -641,7 +690,7 @@ class _QuranScreenState extends State<QuranScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: _FilterChipButton(
-                    label: '\u09ae\u0995\u09cd\u0995\u09c0',
+                    label: _t('Meccan', 'মক্কী'),
                     selected: _filter == 'meccan',
                     isSegment: true,
                     onTap: () => setState(() => _filter = 'meccan'),
@@ -650,7 +699,7 @@ class _QuranScreenState extends State<QuranScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: _FilterChipButton(
-                    label: '\u09ae\u09be\u09a6\u09be\u09a8\u09c0',
+                    label: _t('Medinan', 'মাদানী'),
                     selected: _filter == 'medinan',
                     isSegment: true,
                     onTap: () => setState(() => _filter = 'medinan'),
@@ -659,8 +708,7 @@ class _QuranScreenState extends State<QuranScreen> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: _FilterChipButton(
-                    label:
-                        '\u09a1\u09be\u0989\u09a8\u09b2\u09cb\u09a1\u09c7\u09a1',
+                    label: _t('Downloaded', 'ডাউনলোডেড'),
                     selected: _showOnlyDownloaded,
                     isSegment: true,
                     onTap: () => setState(
@@ -680,7 +728,7 @@ class _QuranScreenState extends State<QuranScreen> {
               fontWeight: FontWeight.w600,
             ),
             decoration: InputDecoration(
-              hintText: 'Search',
+              hintText: _t('Search', 'খুঁজুন'),
               hintStyle: TextStyle(color: glass.textSecondary),
               prefixIcon: Icon(
                 Icons.search_rounded,
@@ -717,7 +765,10 @@ class _QuranScreenState extends State<QuranScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Preparing offline reading: $_bulkCacheCompleted/$_bulkCacheTotal',
+                    _t(
+                      'Preparing offline reading: $_bulkCacheCompleted/$_bulkCacheTotal',
+                      'অফলাইন রিডিং প্রস্তুত হচ্ছে: ${_digits(_bulkCacheCompleted.toString())}/${_digits(_bulkCacheTotal.toString())}',
+                    ),
                     style: const TextStyle(
                       fontSize: 12,
                       color: BrandColors.primaryDark,
@@ -755,7 +806,7 @@ class _QuranScreenState extends State<QuranScreen> {
         child: Row(
           children: [
             Text(
-              'Quran',
+              _t('Quran', 'কুরআন'),
               style: TextStyle(
                 color: glass.textPrimary,
                 fontSize: 18,
@@ -772,7 +823,7 @@ class _QuranScreenState extends State<QuranScreen> {
                 });
               },
               icon: Icon(Icons.search_rounded, color: glass.accent),
-              tooltip: 'Search Surah',
+              tooltip: _t('Search Surah', 'সূরা খুঁজুন'),
             ),
             IconButton(
               onPressed: _openBookmarksScreen,
@@ -782,7 +833,7 @@ class _QuranScreenState extends State<QuranScreen> {
                     : Icons.bookmark_rounded,
                 color: glass.accent,
               ),
-              tooltip: 'Bookmarks',
+              tooltip: _t('Bookmarks', 'বুকমার্ক'),
             ),
             IconButton(
               onPressed: () {
@@ -796,7 +847,7 @@ class _QuranScreenState extends State<QuranScreen> {
                 setState(() => _isTopCollapsed = false);
               },
               icon: Icon(Icons.expand_more_rounded, color: glass.accent),
-              tooltip: 'Expand',
+              tooltip: _t('Expand', 'বিস্তারিত দেখুন'),
             ),
           ],
         ),
@@ -848,7 +899,7 @@ class _QuranScreenState extends State<QuranScreen> {
                                     ? const Color(0xFF032F35)
                                     : Colors.white,
                               ),
-                              child: const Text('Retry'),
+                              child: Text(_t('Retry', 'আবার চেষ্টা করুন')),
                             ),
                           ],
                         ),
@@ -867,6 +918,7 @@ class _QuranScreenState extends State<QuranScreen> {
                             child: _QuranSurahTile(
                               chapter: chapter,
                               hasBookmark: firstBookmark != null,
+                              isBangla: _isBangla,
                               revelationLabel: _revelationLabel(
                                 chapter.revelationPlace,
                               ),
@@ -964,6 +1016,7 @@ class _QuranSurahTile extends StatelessWidget {
   const _QuranSurahTile({
     required this.chapter,
     required this.hasBookmark,
+    required this.isBangla,
     required this.revelationLabel,
     required this.onTap,
     required this.onBookmarkTap,
@@ -971,15 +1024,18 @@ class _QuranSurahTile extends StatelessWidget {
 
   final QuranChapter chapter;
   final bool hasBookmark;
+  final bool isBangla;
   final String revelationLabel;
   final VoidCallback onTap;
   final VoidCallback onBookmarkTap;
+
+  String _t(String en, String bn) => isBangla ? bn : en;
 
   @override
   Widget build(BuildContext context) {
     final glass = NoorifyGlassTheme(context);
     final translation = chapter.surahNameTranslation.trim().isEmpty
-        ? 'Translation unavailable'
+        ? _t('Translation unavailable', 'অনুবাদ পাওয়া যায়নি')
         : chapter.surahNameTranslation.trim();
     final tileBackground = glass.isDark
         ? null
@@ -1091,7 +1147,7 @@ class _QuranSurahTile extends StatelessWidget {
                           ),
                           const SizedBox(height: 1),
                           Text(
-                            '$revelationLabel \u2022 ${chapter.totalAyah} ayat \u2022 $translation',
+                            '$revelationLabel \u2022 ${chapter.totalAyah} ${_t('ayah', 'আয়াত')} \u2022 $translation',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -1143,7 +1199,7 @@ class _QuranSurahTile extends StatelessWidget {
                             ? Icons.bookmark_rounded
                             : Icons.bookmark_border_rounded,
                       ),
-                      tooltip: 'Open bookmarks',
+                      tooltip: _t('Open bookmarks', 'বুকমার্ক খুলুন'),
                     ),
                   ],
                 ),

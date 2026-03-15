@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
 import 'package:first_project/shared/widgets/noorify_glass.dart';
 
@@ -48,6 +51,47 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
   late String _selectedLabel;
   bool _resolvingLabel = false;
   bool _locatingCurrent = false;
+
+  bool get _isBangla => appLanguageNotifier.value == AppLanguage.bangla;
+
+  bool _looksMojibake(String value) {
+    for (final unit in value.codeUnits) {
+      if (unit == 0x00C3 ||
+          unit == 0x00C2 ||
+          unit == 0x00E0 ||
+          unit == 0x00D8 ||
+          unit == 0x00D9 ||
+          unit == 0x00D0 ||
+          unit == 0x00E2) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _repairMojibake(String value) {
+    var output = value;
+    for (var i = 0; i < 2; i++) {
+      if (!_looksMojibake(output)) break;
+      try {
+        output = utf8.decode(latin1.encode(output));
+      } catch (_) {
+        break;
+      }
+    }
+    return output;
+  }
+
+  bool _containsBangla(String value) {
+    return RegExp(r'[\u0980-\u09FF]').hasMatch(value);
+  }
+
+  String _text(String en, String bn) {
+    if (!_isBangla) return en;
+    final repaired = _repairMojibake(bn);
+    if (_looksMojibake(repaired)) return en;
+    return _containsBangla(repaired) ? repaired : en;
+  }
 
   @override
   void initState() {
@@ -108,8 +152,13 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
       if (!serviceEnabled) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enable phone location service.'),
+          SnackBar(
+            content: Text(
+              _text(
+                'Please enable phone location service.',
+                'ফোনের লোকেশন সার্ভিস চালু করুন।',
+              ),
+            ),
           ),
         );
         return;
@@ -124,8 +173,13 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
           permission == LocationPermission.deniedForever) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Location permission denied on this device.'),
+          SnackBar(
+            content: Text(
+              _text(
+                'Location permission denied on this device.',
+                'এই ডিভাইসে লোকেশন পারমিশন বন্ধ আছে।',
+              ),
+            ),
           ),
         );
         return;
@@ -140,7 +194,14 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not read current location.')),
+        SnackBar(
+          content: Text(
+            _text(
+              'Could not read current location.',
+              'বর্তমান লোকেশন পড়া যায়নি।',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -194,7 +255,7 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Location',
+                      _text('Location', 'লোকেশন'),
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -216,7 +277,7 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                     controller: _searchController,
                     style: TextStyle(color: glass.textPrimary),
                     decoration: InputDecoration(
-                      hintText: 'Search',
+                      hintText: _text('Search', 'খুঁজুন'),
                       hintStyle: TextStyle(color: glass.textMuted),
                       border: InputBorder.none,
                       isDense: true,
@@ -254,7 +315,10 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                             color: glass.accent,
                           ),
                     label: Text(
-                      'Use current location',
+                      _text(
+                        'Use current location',
+                        'বর্তমান লোকেশন ব্যবহার করুন',
+                      ),
                       style: TextStyle(
                         color: glass.accent,
                         fontSize: 12.5,
@@ -346,7 +410,10 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Lat: $latText, Long:$lngText',
+                                  _text(
+                                    'Lat: $latText, Long:$lngText',
+                                    'অক্ষাংশ: $latText, দ্রাঘিমাংশ: $lngText',
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
@@ -388,8 +455,8 @@ class _SetLocationScreenState extends State<SetLocationScreen> {
                                 : Colors.white,
                             shape: const StadiumBorder(),
                           ),
-                          child: const Text(
-                            'Choose Location',
+                          child: Text(
+                            _text('Choose Location', 'লোকেশন নির্বাচন করুন'),
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 16 / 1.15,
