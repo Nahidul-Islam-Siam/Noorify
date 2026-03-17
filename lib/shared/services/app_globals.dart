@@ -19,7 +19,7 @@ const int ashrNotificationId = 2003;
 const int maghribNotificationId = 2004;
 const int ishaNotificationId = 2005;
 // Toggle to hide/show Quran module from app navigation without deleting code.
-const bool kQuranFeatureEnabled = false;
+const bool kQuranFeatureEnabled = true;
 
 enum AppLanguage { english, bangla }
 

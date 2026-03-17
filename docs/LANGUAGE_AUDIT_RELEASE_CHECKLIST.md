@@ -28,7 +28,7 @@ Goal: Bangla/English consistency lock before release.
 | Discover | `lib/features/discover/screens/discover_screen.dart` | Uses `t()` + repair fallback; mostly localized. | P1 | Replace remaining mojibake Bangla literals with clean Unicode Bangla strings. |
 | Quran List | `lib/features/quran/screens/quran_screen.dart` | Mixed language experience; several labels are fixed English. | P1 | Localize static UI labels, filters, errors, snackbars. |
 | Surah Detail | `lib/features/quran/screens/surah_detail_screen.dart` | Strong bilingual controls + repair helper in place. | P1 | Replace legacy repaired Bangla text with clean literals to stabilize rendering. |
-| Quran Bookmarks | `lib/features/quran/screens/quran_bookmarks_screen.dart` | English-only screen chrome (title/subtitle). | P1 | Add language-aware labels and ayah meta text. |
+| Quran Bookmarks | `lib/features/quran/screens/ quran_bookmarks_screen.dart` | English-only screen chrome (title/subtitle). | P1 | Add language-aware labels and ayah meta text. |
 | Prayer Times | `lib/features/prayer_time/screens/prayer_times_screen.dart` | Good bilingual coverage and helper usage. | P1 | Localize fallback location/loading phrases and any remaining direct English constants. |
 | Islamic Calendar | `lib/features/islamic_calendar/screens/islamic_calendar_screen.dart` | Heavy mojibake risk in month/day/event labels. | **P0** | Replace all Bangla literals with valid Unicode Bangla; remove corrupted strings. |
 | Qibla Compass | `lib/features/qibla/screens/qibla_compass_screen.dart` | Bangla labels currently rely on corrupted text values. | **P0** | Convert Bangla copy to clean Unicode literals and keep `_text()` only for switching. |

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:first_project/core/constants/route_names.dart';
 import 'package:first_project/features/dua/models/dua_item.dart';
 import 'package:first_project/features/dua/services/dua_service.dart';
+import 'package:first_project/shared/services/app_globals.dart';
 import 'package:first_project/shared/widgets/bottom_nav.dart';
 import 'package:first_project/shared/widgets/noorify_glass.dart';
 
@@ -15,32 +15,48 @@ class DuaScreen extends StatefulWidget {
 
 class _DuaScreenState extends State<DuaScreen> {
   final DuaService _duaService = DuaService();
-  final TextEditingController _searchController = TextEditingController();
 
   bool _isLoading = true;
   String? _error;
-  String _query = '';
-  String _selectedCategory = 'all';
   List<DuaItem> _duas = const [];
+
+  static const List<_PrayerCategory> _prayerCategories = [
+    _PrayerCategory(
+      key: 'after_fajr',
+      titleBn: '????? ??????? ?? ???',
+      titleEn: 'After Fajr Prayer',
+      icon: Icons.wb_sunny_outlined,
+    ),
+    _PrayerCategory(
+      key: 'after_zuhr',
+      titleBn: '?????? ??????? ?? ???',
+      titleEn: 'After Zuhr Prayer',
+      icon: Icons.light_mode_outlined,
+    ),
+    _PrayerCategory(
+      key: 'after_asr',
+      titleBn: '????? ??????? ?? ???',
+      titleEn: 'After Asr Prayer',
+      icon: Icons.schedule_rounded,
+    ),
+    _PrayerCategory(
+      key: 'after_maghrib',
+      titleBn: '???????? ??????? ?? ???',
+      titleEn: 'After Maghrib Prayer',
+      icon: Icons.nights_stay_outlined,
+    ),
+    _PrayerCategory(
+      key: 'after_isha',
+      titleBn: '??? ??????? ?? ???',
+      titleEn: 'After Isha Prayer',
+      icon: Icons.dark_mode_outlined,
+    ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_onSearchChanged);
     _loadDuas();
-  }
-
-  @override
-  void dispose() {
-    _searchController
-      ..removeListener(_onSearchChanged)
-      ..dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged() {
-    if (!mounted) return;
-    setState(() => _query = _searchController.text.trim().toLowerCase());
   }
 
   Future<void> _loadDuas() async {
@@ -65,25 +81,178 @@ class _DuaScreenState extends State<DuaScreen> {
     }
   }
 
-  List<String> get _categories {
-    final set = <String>{};
-    for (final dua in _duas) {
-      if (dua.category.trim().isEmpty) continue;
-      set.add(dua.category);
-    }
-    final values = set.toList(growable: false)..sort();
-    return ['all', ...values];
+  int _categoryCount(String key) =>
+      _duas.where((item) => item.category == key).length;
+
+  void _openCategory(_PrayerCategory category) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _DuaCategoryScreen(category: category, allDuas: _duas),
+      ),
+    );
   }
 
-  List<DuaItem> get _filteredDuas {
-    final filteredByCategory = _duas.where((item) {
-      if (_selectedCategory == 'all') return true;
-      return item.category == _selectedCategory;
-    });
+  @override
+  Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
 
-    if (_query.isEmpty) return filteredByCategory.toList(growable: false);
+    return ValueListenableBuilder<AppLanguage>(
+      valueListenable: appLanguageNotifier,
+      builder: (context, language, _) {
+        final isBangla = language == AppLanguage.bangla;
 
-    return filteredByCategory
+        return Scaffold(
+          backgroundColor: glass.bgBottom,
+          body: NoorifyGlassBackground(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+                    child: NoorifyGlassCard(
+                      radius: BorderRadius.circular(20),
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isBangla ? '????' : 'Dua',
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w700,
+                                    color: glass.textPrimary,
+                                    height: 1,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  isBangla
+                                      ? '?????-??????? ??? ????????? ????? ????'
+                                      : 'Choose a prayer-based dua category',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: glass.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.menu_book_rounded,
+                            color: glass.accent,
+                            size: 26,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: _isLoading
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              color: glass.accent,
+                            ),
+                          )
+                        : _error != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(18),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _error!,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: glass.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  FilledButton(
+                                    onPressed: _loadDuas,
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: glass.accent,
+                                      foregroundColor: glass.isDark
+                                          ? const Color(0xFF052830)
+                                          : Colors.white,
+                                    ),
+                                    child: Text(
+                                      isBangla ? '???? ?????? ????' : 'Retry',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : ListView(
+                            padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
+                            children: [
+                              _PrayerCategoryGrid(
+                                categories: _prayerCategories,
+                                isBangla: isBangla,
+                                countForKey: _categoryCount,
+                                onOpen: _openCategory,
+                              ),
+                            ],
+                          ),
+                  ),
+                  bottomNav(context, 1),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DuaCategoryScreen extends StatefulWidget {
+  const _DuaCategoryScreen({required this.category, required this.allDuas});
+
+  final _PrayerCategory category;
+  final List<DuaItem> allDuas;
+
+  @override
+  State<_DuaCategoryScreen> createState() => _DuaCategoryScreenState();
+}
+
+class _DuaCategoryScreenState extends State<_DuaCategoryScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  bool _showSearch = false;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController
+      ..removeListener(_onSearchChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (!mounted) return;
+    setState(() => _query = _searchController.text.trim().toLowerCase());
+  }
+
+  List<DuaItem> _filtered() {
+    final byCategory = widget.allDuas.where(
+      (item) => item.category == widget.category.key,
+    );
+
+    if (_query.isEmpty) return byCategory.toList(growable: false);
+
+    return byCategory
         .where((item) {
           return item.id.toString().contains(_query) ||
               item.titleEn.toLowerCase().contains(_query) ||
@@ -96,136 +265,91 @@ class _DuaScreenState extends State<DuaScreen> {
         .toList(growable: false);
   }
 
-  String _categoryLabel(String value) {
-    switch (value) {
-      case 'all':
-        return 'All';
-      case 'morning_evening':
-        return 'Morning/Evening';
-      case 'sleep':
-        return 'Sleep';
-      case 'food':
-        return 'Food';
-      case 'travel':
-        return 'Travel';
-      case 'prayer':
-        return 'Prayer';
-      case 'protection':
-        return 'Protection';
-      case 'forgiveness':
-        return 'Forgiveness';
-      case 'sickness':
-        return 'Sickness';
-      case 'family':
-        return 'Family';
-      default:
-        return 'General';
-    }
+  String _titleFor(DuaItem item, bool isBangla) {
+    final bn = item.titleBn.trim();
+    final en = item.titleEn.trim();
+    if (isBangla) return bn.isNotEmpty ? bn : en;
+    return en.isNotEmpty ? en : bn;
   }
 
-  void _openDuaDetails(DuaItem item) {
+  String _subtitleFor(DuaItem item, bool isBangla) {
+    final en = item.titleEn.trim();
+    final bn = item.titleBn.trim();
+    return isBangla ? en : bn;
+  }
+
+  void _openDuaDetails(DuaItem item, bool isBangla) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       useSafeArea: true,
+      showDragHandle: true,
       builder: (sheetContext) {
         final glass = NoorifyGlassTheme(sheetContext);
+        final title = _titleFor(item, isBangla);
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 18),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.titleBn.isNotEmpty ? item.titleBn : item.titleEn,
+                  title,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                     color: glass.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  item.titleEn,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: glass.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: glass.isDark
-                        ? const Color(0x44112635)
-                        : const Color(0xFFEAF3FA),
-                    borderRadius: BorderRadius.circular(12),
+                        ? const Color(0x33162833)
+                        : const Color(0xFFF2F8FB),
+                    borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: glass.glassBorder),
                   ),
                   child: Text(
                     item.arabic,
                     textDirection: TextDirection.rtl,
                     style: TextStyle(
-                      fontSize: 30,
+                      fontSize: 34,
+                      height: 1.45,
                       fontWeight: FontWeight.w600,
                       color: glass.textPrimary,
-                      height: 1.4,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Text(
-                  'English',
+                  isBangla ? item.bangla : item.english,
                   style: TextStyle(
-                    fontSize: 12,
-                    color: glass.textMuted,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.english,
-                  style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
+                    height: 1.7,
                     color: glass.textPrimary,
-                    height: 1.6,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Bangla',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: glass.textMuted,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.bangla,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: glass.textPrimary,
-                    height: 1.6,
                   ),
                 ),
                 if (item.reference.trim().isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
                   Text(
-                    'Reference',
+                    isBangla ? '?????????' : 'Reference',
                     style: TextStyle(
                       fontSize: 12,
-                      color: glass.textMuted,
                       fontWeight: FontWeight.w700,
+                      color: glass.textMuted,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     item.reference,
-                    style: TextStyle(fontSize: 13, color: glass.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.5,
+                      color: glass.textSecondary,
+                    ),
                   ),
                 ],
               ],
@@ -236,107 +360,325 @@ class _DuaScreenState extends State<DuaScreen> {
     );
   }
 
-  void _onTapPlay(DuaItem item) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Dua audio playback integration is next.')),
+  @override
+  Widget build(BuildContext context) {
+    final glass = NoorifyGlassTheme(context);
+
+    return ValueListenableBuilder<AppLanguage>(
+      valueListenable: appLanguageNotifier,
+      builder: (context, language, _) {
+        final isBangla = language == AppLanguage.bangla;
+        final filtered = _filtered();
+
+        return Scaffold(
+          backgroundColor: glass.bgBottom,
+          body: NoorifyGlassBackground(
+            child: SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+                    child: NoorifyGlassCard(
+                      radius: BorderRadius.circular(18),
+                      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              IconButton(
+                                onPressed: () =>
+                                    Navigator.of(context).maybePop(),
+                                icon: const Icon(Icons.arrow_back_rounded),
+                                tooltip: isBangla ? '???? ???' : 'Back',
+                              ),
+                              Expanded(
+                                child: Text(
+                                  isBangla
+                                      ? widget.category.titleBn
+                                      : widget.category.titleEn,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: glass.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _showSearch = !_showSearch;
+                                    if (!_showSearch) {
+                                      _searchController.clear();
+                                    }
+                                  });
+                                },
+                                icon: Icon(
+                                  _showSearch
+                                      ? Icons.close_rounded
+                                      : Icons.search_rounded,
+                                ),
+                                tooltip: isBangla ? '??????' : 'Search',
+                              ),
+                            ],
+                          ),
+                          if (_showSearch) ...[
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _searchController,
+                              style: TextStyle(color: glass.textPrimary),
+                              decoration: InputDecoration(
+                                hintText: isBangla
+                                    ? '??????? ?? ???? ???? ??????'
+                                    : 'Search by title or meaning',
+                                hintStyle: TextStyle(color: glass.textMuted),
+                                prefixIcon: Icon(
+                                  Icons.search_rounded,
+                                  color: glass.textMuted,
+                                ),
+                                filled: true,
+                                fillColor: glass.isDark
+                                    ? const Color(0x33152933)
+                                    : const Color(0xF2FFFFFF),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: glass.glassBorder,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: glass.glassBorder,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(14, 2, 14, 10),
+                      children: [
+                        NoorifyGlassCard(
+                          radius: BorderRadius.circular(16),
+                          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                          child: Row(
+                            children: [
+                              Icon(
+                                widget.category.icon,
+                                size: 18,
+                                color: glass.accent,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  isBangla
+                                      ? widget.category.titleBn
+                                      : widget.category.titleEn,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: glass.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: glass.isDark
+                                      ? const Color(0x2A2EB8E6)
+                                      : const Color(0x221EA8B8),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${filtered.length}',
+                                  style: TextStyle(
+                                    color: glass.accent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        if (filtered.isEmpty)
+                          NoorifyGlassCard(
+                            radius: BorderRadius.circular(16),
+                            padding: const EdgeInsets.all(16),
+                            child: Text(
+                              isBangla
+                                  ? '?? ???????? ???? ???? ????? ??????'
+                                  : 'No dua found for this filter.',
+                              style: TextStyle(
+                                color: glass.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          )
+                        else
+                          ...filtered.map((item) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(14),
+                                onTap: () => _openDuaDetails(item, isBangla),
+                                child: NoorifyGlassCard(
+                                  radius: BorderRadius.circular(14),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    10,
+                                    12,
+                                    10,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _titleFor(item, isBangla),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 14.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: glass.textPrimary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _subtitleFor(item, isBangla),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: glass.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        Icons.bookmark_add_outlined,
+                                        size: 21,
+                                        color: glass.textMuted,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
+}
+
+class _PrayerCategoryGrid extends StatelessWidget {
+  const _PrayerCategoryGrid({
+    required this.categories,
+    required this.isBangla,
+    required this.countForKey,
+    required this.onOpen,
+  });
+
+  final List<_PrayerCategory> categories;
+  final bool isBangla;
+  final int Function(String key) countForKey;
+  final ValueChanged<_PrayerCategory> onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filteredDuas;
     final glass = NoorifyGlassTheme(context);
+    final itemWidth = (MediaQuery.of(context).size.width - 38) / 2;
 
-    return Scaffold(
-      backgroundColor: glass.bgBottom,
-      body: NoorifyGlassBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: categories
+          .map((category) {
+            return InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => onOpen(category),
+              child: SizedBox(
+                width: itemWidth,
                 child: NoorifyGlassCard(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                  radius: BorderRadius.circular(20),
+                  radius: BorderRadius.circular(16),
+                  padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Hisnul Muslim Duas',
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(
-                                    color: glass.textPrimary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
+                      Container(
+                        width: 78,
+                        height: 78,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: glass.isDark
+                              ? const Color(0x33243C46)
+                              : const Color(0xFFE5F5F6),
+                          border: Border.all(
+                            color: glass.glassBorder,
+                            width: 1,
                           ),
-                          IconButton(
-                            onPressed: () => Navigator.of(
-                              context,
-                            ).pushNamed(RouteNames.tasbih),
-                            icon: const Icon(Icons.countertops_rounded),
-                            tooltip: 'Tasbih Counter',
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: glass.isDark
-                                  ? const Color(0x332EB8E6)
-                                  : const Color(0x1F1EA8B8),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: glass.glassBorder),
-                            ),
-                            child: Text(
-                              '${filtered.length}/${_duas.length}',
-                              style: TextStyle(
-                                color: glass.textPrimary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Read, search, and save dua references',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        ),
+                        child: Icon(
+                          category.icon,
+                          size: 34,
                           color: glass.textSecondary,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _searchController,
-                        style: TextStyle(color: glass.textPrimary),
-                        decoration: InputDecoration(
-                          hintText: 'Search by title, meaning, reference',
-                          hintStyle: TextStyle(color: glass.textMuted),
-                          prefixIcon: Icon(
-                            Icons.search_rounded,
-                            color: glass.textMuted,
-                          ),
-                          filled: true,
-                          fillColor: glass.isDark
-                              ? const Color(0x4412272E)
-                              : const Color(0xECFFFFFF),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: glass.glassBorder),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: glass.glassBorder),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
+                      const SizedBox(height: 8),
+                      Text(
+                        isBangla ? category.titleBn : category.titleEn,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: glass.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: glass.isDark
+                              ? const Color(0x2A2EB8E6)
+                              : const Color(0x221EA8B8),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '${countForKey(category.key)}',
+                          style: TextStyle(
+                            color: glass.accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -344,205 +686,23 @@ class _DuaScreenState extends State<DuaScreen> {
                   ),
                 ),
               ),
-              if (!_isLoading && _error == null)
-                SizedBox(
-                  height: 48,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _categories.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final value = _categories[index];
-                      final selected = value == _selectedCategory;
-                      return ChoiceChip(
-                        selected: selected,
-                        label: Text(_categoryLabel(value)),
-                        selectedColor: glass.isDark
-                            ? const Color(0x332EB8E6)
-                            : const Color(0x261EA8B8),
-                        checkmarkColor: glass.accent,
-                        side: BorderSide(
-                          color: selected ? glass.accent : glass.glassBorder,
-                        ),
-                        labelStyle: TextStyle(
-                          color: selected ? glass.accent : glass.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        onSelected: (_) =>
-                            setState(() => _selectedCategory = value),
-                      );
-                    },
-                  ),
-                ),
-              Expanded(
-                child: _isLoading
-                    ? Center(
-                        child: CircularProgressIndicator(color: glass.accent),
-                      )
-                    : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _error!,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: glass.textSecondary),
-                              ),
-                              const SizedBox(height: 10),
-                              FilledButton(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: glass.accent,
-                                  foregroundColor: glass.isDark
-                                      ? const Color(0xFF032F35)
-                                      : Colors.white,
-                                ),
-                                onPressed: _loadDuas,
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final item = filtered[index];
-                          final hasAudio = (item.audio ?? '').trim().isNotEmpty;
-
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () => _openDuaDetails(item),
-                            child: NoorifyGlassCard(
-                              radius: BorderRadius.circular(16),
-                              padding: const EdgeInsets.fromLTRB(
-                                12,
-                                10,
-                                12,
-                                12,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 9,
-                                          vertical: 5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: glass.isDark
-                                              ? const Color(0x332EB8E6)
-                                              : const Color(0x221EA8B8),
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          '#${item.id}',
-                                          style: TextStyle(
-                                            color: glass.accent,
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          _categoryLabel(item.category),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: glass.textSecondary,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                      IconButton.filledTonal(
-                                        tooltip: hasAudio
-                                            ? 'Play audio'
-                                            : 'No audio yet',
-                                        onPressed: hasAudio
-                                            ? () => _onTapPlay(item)
-                                            : null,
-                                        style: IconButton.styleFrom(
-                                          backgroundColor: glass.isDark
-                                              ? const Color(0x3316383E)
-                                              : const Color(0x221EA8B8),
-                                          foregroundColor: glass.accent,
-                                        ),
-                                        icon: const Icon(
-                                          Icons.play_arrow_rounded,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item.titleBn.isNotEmpty
-                                        ? item.titleBn
-                                        : item.titleEn,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                      color: glass.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Text(
-                                    item.titleEn,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: glass.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    item.arabic,
-                                    textDirection: TextDirection.rtl,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                      color: glass.textPrimary,
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    item.english,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: glass.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-              bottomNav(context, 1),
-            ],
-          ),
-        ),
-      ),
+            );
+          })
+          .toList(growable: false),
     );
   }
+}
+
+class _PrayerCategory {
+  const _PrayerCategory({
+    required this.key,
+    required this.titleBn,
+    required this.titleEn,
+    required this.icon,
+  });
+
+  final String key;
+  final String titleBn;
+  final String titleEn;
+  final IconData icon;
 }
